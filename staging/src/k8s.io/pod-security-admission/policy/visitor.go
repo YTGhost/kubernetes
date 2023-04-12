@@ -18,20 +18,29 @@ package policy
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// ContainerVisitor is called with each container and the field.Path to that container
-type ContainerVisitor func(container *corev1.Container)
+var (
+	specPath                   = field.NewPath("spec")
+	initContainersFldPath      = specPath.Child("initContainers")
+	containersFldPath          = specPath.Child("containers")
+	ephemeralContainersFldPath = specPath.Child("ephemeralContainers")
+)
 
-// visitContainers invokes the visitor function for every container in the given pod spec
-func visitContainers(podSpec *corev1.PodSpec, visitor ContainerVisitor) {
+// ContainerVisitorWithPath is called with each container, the field.Path and the ErrListHandler to that container.
+type ContainerVisitorWithPath func(container *corev1.Container, path *field.Path, errListHandler ErrListHandler)
+
+// visitContainersWithPath invokes the visitor function with a pointer to the spec
+// of every container in the given pod spec, the field.Path and the ErrListHandler to that container.
+func visitContainersWithPath(podSpec *corev1.PodSpec, visitor ContainerVisitorWithPath, errListHandler ErrListHandler) {
 	for i := range podSpec.InitContainers {
-		visitor(&podSpec.InitContainers[i])
+		visitor(&podSpec.InitContainers[i], initContainersFldPath.Index(i), errListHandler)
 	}
 	for i := range podSpec.Containers {
-		visitor(&podSpec.Containers[i])
+		visitor(&podSpec.Containers[i], containersFldPath.Index(i), errListHandler)
 	}
 	for i := range podSpec.EphemeralContainers {
-		visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon))
+		visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), ephemeralContainersFldPath.Index(i), errListHandler)
 	}
 }

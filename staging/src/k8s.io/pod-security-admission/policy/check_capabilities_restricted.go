@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -63,30 +64,34 @@ func CheckCapabilitiesRestricted() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion:   api.MajorMinorVersion(1, 22),
-				CheckPod:         capabilitiesRestricted_1_22,
+				CheckPod:         withOptions(capabilitiesRestricted_1_22),
 				OverrideCheckIDs: []CheckID{checkCapabilitiesBaselineID},
 			},
 			// Starting 1.25, windows pods would be exempted from this check using pod.spec.os field when set to windows.
 			{
 				MinimumVersion:   api.MajorMinorVersion(1, 25),
-				CheckPod:         capabilitiesRestricted_1_25,
+				CheckPod:         withOptions(capabilitiesRestricted_1_25),
 				OverrideCheckIDs: []CheckID{checkCapabilitiesBaselineID},
 			},
 		},
 	}
 }
 
-func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var (
 		containersMissingDropAll  []string
 		containersAddingForbidden []string
 		forbiddenCapabilities     = sets.NewString()
+		errList                   field.ErrorList
 	)
 
-	visitContainers(podSpec, func(container *corev1.Container) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path, errListHandler ErrListHandler) {
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {
 			containersMissingDropAll = append(containersMissingDropAll, container.Name)
-			return
+			err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
+				capabilityAll,
+			})
+			errListHandler(&errList, err)
 		}
 
 		droppedAll := false
@@ -98,6 +103,10 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		}
 		if !droppedAll {
 			containersMissingDropAll = append(containersMissingDropAll, container.Name)
+			err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
+				capabilityAll,
+			})
+			errListHandler(&errList, err)
 		}
 
 		addedForbidden := false
@@ -109,8 +118,11 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		}
 		if addedForbidden {
 			containersAddingForbidden = append(containersAddingForbidden, container.Name)
+			err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("add"), ""), forbiddenCapabilities.List())
+			errListHandler(&errList, err)
 		}
-	})
+	}, opts.errListHandler)
+
 	var forbiddenDetails []string
 	if len(containersMissingDropAll) > 0 {
 		forbiddenDetails = append(forbiddenDetails, fmt.Sprintf(
@@ -130,16 +142,17 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			Allowed:         false,
 			ForbiddenReason: "unrestricted capabilities",
 			ForbiddenDetail: strings.Join(forbiddenDetails, "; "),
+			ErrList:         errList,
 		}
 	}
 	return CheckResult{Allowed: true}
 }
 
-func capabilitiesRestricted_1_25(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func capabilitiesRestricted_1_25(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// Pod API validation would have failed if podOS == Windows and if capabilities have been set.
 	// We can admit the Windows pod even if capabilities has not been set.
 	if podSpec.OS != nil && podSpec.OS.Name == corev1.Windows {
 		return CheckResult{Allowed: true}
 	}
-	return capabilitiesRestricted_1_22(podMetadata, podSpec)
+	return capabilitiesRestricted_1_22(podMetadata, podSpec, opts)
 }
