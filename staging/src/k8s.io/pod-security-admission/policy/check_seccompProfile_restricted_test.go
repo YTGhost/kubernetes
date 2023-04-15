@@ -26,6 +26,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 		allowed      bool
@@ -106,7 +107,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := seccompProfileRestricted_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := seccompProfileRestricted_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed && !tc.allowed {
 				t.Fatal("expected disallowed")
 			}
@@ -124,6 +125,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 	}{
@@ -181,7 +183,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := seccompProfileRestricted_1_19(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := seccompProfileRestricted_1_19(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed {
 				t.Fatal("expected disallowed")
 			}

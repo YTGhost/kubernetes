@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,17 +48,24 @@ func CheckPrivileged() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       privileged_1_0,
+				CheckPod:       withOptions(privileged_1_0),
 			},
 		},
 	}
 }
 
-func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var badContainers []string
-	visitContainers(podSpec, func(container *corev1.Container) {
+	var errList field.ErrorList
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
 			badContainers = append(badContainers, container.Name)
+			opts.errListHandler(func() {
+				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("privileged"), ""), []string{
+					"true",
+				})
+				errList = append(errList, err)
+			})
 		}
 	})
 	if len(badContainers) > 0 {
@@ -69,6 +77,7 @@ func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) Che
 				pluralize("container", "containers", len(badContainers)),
 				joinQuote(badContainers),
 			),
+			ErrList: errList,
 		}
 	}
 	return CheckResult{Allowed: true}

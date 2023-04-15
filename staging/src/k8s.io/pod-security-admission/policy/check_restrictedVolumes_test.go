@@ -26,6 +26,7 @@ func TestRestrictedVolumes(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 	}{
@@ -81,7 +82,7 @@ func TestRestrictedVolumes(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := restrictedVolumes_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := restrictedVolumes_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed {
 				t.Fatal("expected disallowed")
 			}

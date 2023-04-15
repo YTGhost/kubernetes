@@ -17,6 +17,7 @@ limitations under the License.
 package policy
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +37,12 @@ spec.hostIPC
 **Allowed Values:** undefined, false
 */
 
+var (
+	hostNetworkPath = specPath.Child("hostNetwork")
+	hostPIDPath     = specPath.Child("hostPID")
+	hostIPCPath     = specPath.Child("hostIPC")
+)
+
 func init() {
 	addCheck(CheckHostNamespaces)
 }
@@ -49,25 +56,41 @@ func CheckHostNamespaces() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       hostNamespaces_1_0,
+				CheckPod:       withOptions(hostNamespaces_1_0),
 			},
 		},
 	}
 }
 
-func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var hostNamespaces []string
+	var errList field.ErrorList
 
 	if podSpec.HostNetwork {
 		hostNamespaces = append(hostNamespaces, "hostNetwork=true")
+		opts.errListHandler(func() {
+			errList = append(errList, withBadValue(field.Forbidden(hostNetworkPath, ""), []string{
+				"hostNetwork=true",
+			}))
+		})
 	}
 
 	if podSpec.HostPID {
 		hostNamespaces = append(hostNamespaces, "hostPID=true")
+		opts.errListHandler(func() {
+			errList = append(errList, withBadValue(field.Forbidden(hostPIDPath, ""), []string{
+				"hostPID=true",
+			}))
+		})
 	}
 
 	if podSpec.HostIPC {
 		hostNamespaces = append(hostNamespaces, "hostIPC=true")
+		opts.errListHandler(func() {
+			errList = append(errList, withBadValue(field.Forbidden(hostIPCPath, ""), []string{
+				"hostIPC=true",
+			}))
+		})
 	}
 
 	if len(hostNamespaces) > 0 {
@@ -75,6 +98,7 @@ func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec)
 			Allowed:         false,
 			ForbiddenReason: "host namespaces",
 			ForbiddenDetail: strings.Join(hostNamespaces, ", "),
+			ErrList:         errList,
 		}
 	}
 

@@ -21,6 +21,19 @@ import (
 	"strings"
 )
 
+var (
+	annotationsPath        = field.NewPath("metadata", "annotations")
+	specPath               = field.NewPath("spec")
+	securityContextPath    = specPath.Child("securityContext")
+	volumesPath            = specPath.Child("volumes")
+	runAsNonRootPath       = securityContextPath.Child("runAsNonRoot")
+	runAsUserPath          = securityContextPath.Child("runAsUser")
+	seccompProfileTypePath = securityContextPath.Child("seccompProfile").Child("type")
+	seLinuxOptionsTypePath = securityContextPath.Child("seLinuxOptions").Child("type")
+	sysctlsPath            = securityContextPath.Child("sysctls")
+	hostProcessPath        = securityContextPath.Child("windowsOptions").Child("hostProcess")
+)
+
 func joinQuote(items []string) string {
 	if len(items) == 0 {
 		return ""

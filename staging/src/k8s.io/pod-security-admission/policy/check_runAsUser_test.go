@@ -27,6 +27,7 @@ func TestRunAsUser(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectAllow  bool
 		expectReason string
 		expectDetail string
@@ -94,7 +95,7 @@ func TestRunAsUser(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := runAsUser_1_23(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := runAsUser_1_23(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if tc.expectAllow {
 				if !result.Allowed {
 					t.Fatalf("expected to be allowed, disallowed: %s, %s", result.ForbiddenReason, result.ForbiddenDetail)

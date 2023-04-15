@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,18 +50,25 @@ func CheckHostPathVolumes() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       hostPathVolumes_1_0,
+				CheckPod:       withOptions(hostPathVolumes_1_0),
 			},
 		},
 	}
 }
 
-func hostPathVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func hostPathVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var hostVolumes []string
+	var errList field.ErrorList
 
-	for _, volume := range podSpec.Volumes {
+	for i, volume := range podSpec.Volumes {
 		if volume.HostPath != nil {
 			hostVolumes = append(hostVolumes, volume.Name)
+			opts.errListHandler(func() {
+				hostPath := specPath.Child("volumes").Index(i).Child("hostPath")
+				errList = append(errList, withBadValue(field.Forbidden(hostPath, ""), []string{
+					volume.Name,
+				}))
+			})
 		}
 	}
 
@@ -69,6 +77,7 @@ func hostPathVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec
 			Allowed:         false,
 			ForbiddenReason: "hostPath volumes",
 			ForbiddenDetail: fmt.Sprintf("%s %s", pluralize("volume", "volumes", len(hostVolumes)), joinQuote(hostVolumes)),
+			ErrList:         errList,
 		}
 	}
 

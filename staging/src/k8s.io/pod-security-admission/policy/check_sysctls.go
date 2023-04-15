@@ -17,6 +17,7 @@ limitations under the License.
 package policy
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -59,11 +60,11 @@ func CheckSysctls() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       sysctls_1_0,
+				CheckPod:       withOptions(sysctls_1_0),
 			},
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 27),
-				CheckPod:       sysctls_1_27,
+				CheckPod:       withOptions(sysctls_1_27),
 			},
 		},
 	}
@@ -87,21 +88,28 @@ var (
 	)
 )
 
-func sysctls_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
-	return sysctls(podMetadata, podSpec, sysctls_allowed_1_0)
+func sysctls_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
+	return sysctls(podMetadata, podSpec, sysctls_allowed_1_0, opts)
 }
 
-func sysctls_1_27(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
-	return sysctls(podMetadata, podSpec, sysctls_allowed_1_27)
+func sysctls_1_27(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
+	return sysctls(podMetadata, podSpec, sysctls_allowed_1_27, opts)
 }
 
-func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_allowed_set sets.String) CheckResult {
+func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_allowed_set sets.String, opts options) CheckResult {
 	var forbiddenSysctls []string
+	var errList field.ErrorList
 
 	if podSpec.SecurityContext != nil {
-		for _, sysctl := range podSpec.SecurityContext.Sysctls {
+		for i, sysctl := range podSpec.SecurityContext.Sysctls {
 			if !sysctls_allowed_set.Has(sysctl.Name) {
 				forbiddenSysctls = append(forbiddenSysctls, sysctl.Name)
+				opts.errListHandler(func() {
+					err := withBadValue(field.Forbidden(sysctlsPath.Index(i).Child("name"), ""), []string{
+						sysctl.Name,
+					})
+					errList = append(errList, err)
+				})
 			}
 		}
 	}
@@ -111,6 +119,7 @@ func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_al
 			Allowed:         false,
 			ForbiddenReason: "forbidden sysctls",
 			ForbiddenDetail: strings.Join(forbiddenSysctls, ", "),
+			ErrList:         errList,
 		}
 	}
 	return CheckResult{Allowed: true}

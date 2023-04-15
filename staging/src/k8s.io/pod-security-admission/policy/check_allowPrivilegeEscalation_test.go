@@ -27,6 +27,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 		allowed      bool
@@ -68,7 +69,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := allowPrivilegeEscalation_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := allowPrivilegeEscalation_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed && !tc.allowed {
 				t.Fatal("expected disallowed")
 			}
@@ -86,6 +87,7 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 	}{
@@ -105,7 +107,7 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := allowPrivilegeEscalation_1_8(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := allowPrivilegeEscalation_1_8(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed {
 				t.Fatal("expected disallowed")
 			}

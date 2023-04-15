@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -50,20 +51,27 @@ func CheckWindowsHostProcess() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       windowsHostProcess_1_0,
+				CheckPod:       withOptions(windowsHostProcess_1_0),
 			},
 		},
 	}
 }
 
-func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var badContainers []string
-	visitContainers(podSpec, func(container *corev1.Container) {
+	var errList field.ErrorList
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext != nil &&
 			container.SecurityContext.WindowsOptions != nil &&
 			container.SecurityContext.WindowsOptions.HostProcess != nil &&
 			*container.SecurityContext.WindowsOptions.HostProcess {
 			badContainers = append(badContainers, container.Name)
+			opts.errListHandler(func() {
+				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("windowsOptions").Child("hostProcess"), ""), []string{
+					"true",
+				})
+				errList = append(errList, err)
+			})
 		}
 	})
 
@@ -73,6 +81,12 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 		podSpec.SecurityContext.WindowsOptions.HostProcess != nil &&
 		*podSpec.SecurityContext.WindowsOptions.HostProcess {
 		podSpecForbidden = true
+		opts.errListHandler(func() {
+			err := withBadValue(field.Forbidden(hostProcessPath, ""), []string{
+				"true",
+			})
+			errList = append(errList, err)
+		})
 	}
 
 	// pod or containers explicitly set hostProcess=true
@@ -95,6 +109,7 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 			Allowed:         false,
 			ForbiddenReason: "hostProcess",
 			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.windowsOptions.hostProcess=true", strings.Join(forbiddenSetters, " and ")),
+			ErrList:         errList,
 		}
 	}
 

@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strconv"
 	"strings"
 
@@ -51,21 +52,28 @@ func CheckHostPorts() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       hostPorts_1_0,
+				CheckPod:       withOptions(hostPorts_1_0),
 			},
 		},
 	}
 }
 
-func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var badContainers []string
+	var errList field.ErrorList
 	forbiddenHostPorts := sets.NewString()
-	visitContainers(podSpec, func(container *corev1.Container) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		valid := true
-		for _, c := range container.Ports {
+		for i, c := range container.Ports {
 			if c.HostPort != 0 {
 				valid = false
 				forbiddenHostPorts.Insert(strconv.Itoa(int(c.HostPort)))
+				opts.errListHandler(func() {
+					err := withBadValue(field.Forbidden(path.Child("ports").Index(i).Child("hostPort"), ""), []string{
+						strconv.Itoa(int(c.HostPort)),
+					})
+					errList = append(errList, err)
+				})
 			}
 		}
 		if !valid {
@@ -85,6 +93,7 @@ func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) Chec
 				pluralize("hostPort", "hostPorts", len(forbiddenHostPorts)),
 				strings.Join(forbiddenHostPorts.List(), ", "),
 			),
+			ErrList: errList,
 		}
 	}
 	return CheckResult{Allowed: true}

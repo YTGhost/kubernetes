@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -52,20 +53,27 @@ func CheckRunAsNonRoot() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       runAsNonRoot_1_0,
+				CheckPod:       withOptions(runAsNonRoot_1_0),
 			},
 		},
 	}
 }
 
-func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set runAsNonRoot=false
 	var badSetters []string
+	var errList field.ErrorList
 
 	podRunAsNonRoot := false
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsNonRoot != nil {
 		if !*podSpec.SecurityContext.RunAsNonRoot {
 			badSetters = append(badSetters, "pod")
+			opts.errListHandler(func() {
+				err := withBadValue(field.Forbidden(runAsNonRootPath, ""), []string{
+					"false",
+				})
+				errList = append(errList, err)
+			})
 		} else {
 			podRunAsNonRoot = true
 		}
@@ -76,18 +84,30 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) C
 	// containers that didn't set runAsNonRoot and aren't caught by a pod-level runAsNonRoot=true
 	var implicitlyBadContainers []string
 
-	visitContainers(podSpec, func(container *corev1.Container) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext != nil && container.SecurityContext.RunAsNonRoot != nil {
 			// container explicitly set runAsNonRoot
 			if !*container.SecurityContext.RunAsNonRoot {
 				// container explicitly set runAsNonRoot to a bad value
 				explicitlyBadContainers = append(explicitlyBadContainers, container.Name)
+				opts.errListHandler(func() {
+					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("runAsNonRoot"), ""), []string{
+						"false",
+					})
+					errList = append(errList, err)
+				})
 			}
 		} else {
 			// container did not explicitly set runAsNonRoot
 			if !podRunAsNonRoot {
 				// no pod-level runAsNonRoot=true, so this container implicitly has a bad value
 				implicitlyBadContainers = append(implicitlyBadContainers, container.Name)
+				opts.errListHandler(func() {
+					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("runAsNonRoot"), ""), []string{
+						"false",
+					})
+					errList = append(errList, err)
+				})
 			}
 		}
 	})
@@ -108,6 +128,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) C
 			Allowed:         false,
 			ForbiddenReason: "runAsNonRoot != true",
 			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.runAsNonRoot=false", strings.Join(badSetters, " and ")),
+			ErrList:         errList,
 		}
 	}
 
@@ -121,6 +142,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) C
 				pluralize("container", "containers", len(implicitlyBadContainers)),
 				joinQuote(implicitlyBadContainers),
 			),
+			ErrList: errList,
 		}
 	}
 

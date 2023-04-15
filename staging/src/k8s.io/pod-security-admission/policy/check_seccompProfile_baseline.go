@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -62,11 +63,11 @@ func CheckSeccompBaseline() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       seccompProfileBaseline_1_0,
+				CheckPod:       withOptions(seccompProfileBaseline_1_0),
 			},
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 19),
-				CheckPod:       seccompProfileBaseline_1_19,
+				CheckPod:       withOptions(seccompProfileBaseline_1_19),
 			},
 		},
 	}
@@ -84,20 +85,31 @@ func validSeccompAnnotationValue(v string) bool {
 }
 
 // seccompProfileBaseline_1_0 checks baseline policy on seccomp alpha annotation
-func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	forbidden := sets.NewString()
+	var errList field.ErrorList
 
 	if val, ok := podMetadata.Annotations[annotationKeyPod]; ok {
 		if !validSeccompAnnotationValue(val) {
 			forbidden.Insert(fmt.Sprintf("%s=%q", annotationKeyPod, val))
+			if opts.withErrList {
+				errList = append(errList, withBadValue(field.Forbidden(annotationsPath.Key(annotationKeyPod), ""), []string{
+					val,
+				}))
+			}
 		}
 	}
 
-	visitContainers(podSpec, func(c *corev1.Container) {
+	visitContainersWithPath(podSpec, func(c *corev1.Container, path *field.Path) {
 		annotation := annotationKeyContainerPrefix + c.Name
 		if val, ok := podMetadata.Annotations[annotation]; ok {
 			if !validSeccompAnnotationValue(val) {
 				forbidden.Insert(fmt.Sprintf("%s=%q", annotation, val))
+				if opts.withErrList {
+					errList = append(errList, withBadValue(field.Forbidden(annotationsPath.Key(annotation), ""), []string{
+						val,
+					}))
+				}
 			}
 		}
 	})
@@ -111,6 +123,7 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 				pluralize("annotation", "annotations", len(forbidden)),
 				strings.Join(forbidden.List(), ", "),
 			),
+			ErrList: errList,
 		}
 	}
 
@@ -118,28 +131,41 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 }
 
 // seccompProfileBaseline_1_19 checks baseline policy on securityContext.seccompProfile field
-func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set seccompProfile.type to a bad value
 	var badSetters []string
 	badValues := sets.NewString()
+	var errList field.ErrorList
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SeccompProfile != nil {
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
 			badSetters = append(badSetters, "pod")
 			badValues.Insert(string(podSpec.SecurityContext.SeccompProfile.Type))
+			opts.errListHandler(func() {
+				err := withBadValue(field.Forbidden(seccompProfileTypePath, ""), []string{
+					string(podSpec.SecurityContext.SeccompProfile.Type),
+				})
+				errList = append(errList, err)
+			})
 		}
 	}
 
 	// containers that explicitly set seccompProfile.type to a bad value
 	var explicitlyBadContainers []string
 
-	visitContainers(podSpec, func(c *corev1.Container) {
+	visitContainersWithPath(podSpec, func(c *corev1.Container, path *field.Path) {
 		if c.SecurityContext != nil && c.SecurityContext.SeccompProfile != nil {
 			// container explicitly set seccompProfile
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers = append(explicitlyBadContainers, c.Name)
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))
+				opts.errListHandler(func() {
+					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("seccompProfile").Child("type"), ""), []string{
+						string(podSpec.SecurityContext.SeccompProfile.Type),
+					})
+					errList = append(errList, err)
+				})
 			}
 		}
 	})
@@ -164,6 +190,7 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 				strings.Join(badSetters, " and "),
 				joinQuote(badValues.List()),
 			),
+			ErrList: errList,
 		}
 	}
 

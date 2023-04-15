@@ -39,9 +39,11 @@ func withOptions(f func(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 
 type ErrListHandler func(errList *field.ErrorList, error *field.Error)
 
-func (o options) errListHandler(errList *field.ErrorList, error *field.Error) {
+func (o options) errListHandler(f func()) {
 	if o.withErrList {
-		*errList = append(*errList, error)
+		if f != nil {
+			f()
+		}
 	}
 }
 

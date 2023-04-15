@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -64,7 +65,7 @@ func CheckSELinuxOptions() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       seLinuxOptions_1_0,
+				CheckPod:       withOptions(seLinuxOptions_1_0),
 			},
 		},
 	}
@@ -74,10 +75,12 @@ var (
 	selinux_allowed_types_1_0 = sets.NewString("", "container_t", "container_init_t", "container_kvm_t")
 )
 
-func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var (
 		// sources that set bad seLinuxOptions
 		badSetters []string
+		// detailed list of restricted field errors
+		errList field.ErrorList
 
 		// invalid type values set
 		badTypes = sets.NewString()
@@ -107,14 +110,24 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec)
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SELinuxOptions != nil {
 		if !validSELinuxOptions(podSpec.SecurityContext.SELinuxOptions) {
 			badSetters = append(badSetters, "pod")
+			opts.errListHandler(func() {
+				err := withBadValue(field.Forbidden(seLinuxOptionsTypePath, ""), []string{
+					podSpec.SecurityContext.SELinuxOptions.Type,
+				})
+				errList = append(errList, err)
+			})
 		}
 	}
 
 	var badContainers []string
-	visitContainers(podSpec, func(container *corev1.Container) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext != nil && container.SecurityContext.SELinuxOptions != nil {
 			if !validSELinuxOptions(container.SecurityContext.SELinuxOptions) {
 				badContainers = append(badContainers, container.Name)
+				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("seLinuxOptions").Child("type"), ""), []string{
+					container.SecurityContext.SELinuxOptions.Type,
+				})
+				errList = append(errList, err)
 			}
 		}
 	})
@@ -153,6 +166,7 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec)
 				strings.Join(badSetters, " and "),
 				strings.Join(badData, "; "),
 			),
+			ErrList: errList,
 		}
 	}
 	return CheckResult{Allowed: true}

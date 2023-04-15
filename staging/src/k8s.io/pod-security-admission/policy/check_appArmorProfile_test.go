@@ -30,6 +30,7 @@ func TestCheckAppArmor(t *testing.T) {
 		name           string
 		metaData       *metav1.ObjectMeta
 		podSpec        *corev1.PodSpec
+		opts           options
 		expectedResult *CheckResult
 	}{
 		{
@@ -71,7 +72,7 @@ func TestCheckAppArmor(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			result := appArmorProfile_1_0(testCase.metaData, nil)
+			result := appArmorProfile_1_0(testCase.metaData, nil, testCase.opts)
 			if result.Allowed != testCase.expectedResult.Allowed {
 				t.Errorf("Expected result was Allowed=%v for annotations %v",
 					testCase.expectedResult.Allowed, testCase.metaData.Annotations)
@@ -84,6 +85,7 @@ func TestAppArmorProfile(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 	}{
@@ -113,7 +115,7 @@ func TestAppArmorProfile(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := appArmorProfile_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := appArmorProfile_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed {
 				t.Fatal("expected disallowed")
 			}

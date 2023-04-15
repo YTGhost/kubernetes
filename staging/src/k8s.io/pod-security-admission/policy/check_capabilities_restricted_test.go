@@ -26,6 +26,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 		allowed      bool
@@ -64,7 +65,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := capabilitiesRestricted_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := capabilitiesRestricted_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed && !tc.allowed {
 				t.Fatal("expected disallowed")
 			}
@@ -82,6 +83,7 @@ func TestCapabilitiesRestricted_1_22(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		expectReason string
 		expectDetail string
 	}{
@@ -99,7 +101,7 @@ func TestCapabilitiesRestricted_1_22(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := capabilitiesRestricted_1_22(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := capabilitiesRestricted_1_22(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if result.Allowed {
 				t.Fatal("expected disallowed")
 			}

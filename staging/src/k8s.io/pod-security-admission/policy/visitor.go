@@ -22,25 +22,24 @@ import (
 )
 
 var (
-	specPath                   = field.NewPath("spec")
 	initContainersFldPath      = specPath.Child("initContainers")
 	containersFldPath          = specPath.Child("containers")
 	ephemeralContainersFldPath = specPath.Child("ephemeralContainers")
 )
 
-// ContainerVisitorWithPath is called with each container, the field.Path and the ErrListHandler to that container.
-type ContainerVisitorWithPath func(container *corev1.Container, path *field.Path, errListHandler ErrListHandler)
+// ContainerVisitorWithPath is called with each container and the field.Path to that container.
+type ContainerVisitorWithPath func(container *corev1.Container, path *field.Path)
 
 // visitContainersWithPath invokes the visitor function with a pointer to the spec
-// of every container in the given pod spec, the field.Path and the ErrListHandler to that container.
-func visitContainersWithPath(podSpec *corev1.PodSpec, visitor ContainerVisitorWithPath, errListHandler ErrListHandler) {
+// of every container in the given pod spec and the field.Path to that container.
+func visitContainersWithPath(podSpec *corev1.PodSpec, visitor ContainerVisitorWithPath) {
 	for i := range podSpec.InitContainers {
-		visitor(&podSpec.InitContainers[i], initContainersFldPath.Index(i), errListHandler)
+		visitor(&podSpec.InitContainers[i], initContainersFldPath.Index(i))
 	}
 	for i := range podSpec.Containers {
-		visitor(&podSpec.Containers[i], containersFldPath.Index(i), errListHandler)
+		visitor(&podSpec.Containers[i], containersFldPath.Index(i))
 	}
 	for i := range podSpec.EphemeralContainers {
-		visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), ephemeralContainersFldPath.Index(i), errListHandler)
+		visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), ephemeralContainersFldPath.Index(i))
 	}
 }

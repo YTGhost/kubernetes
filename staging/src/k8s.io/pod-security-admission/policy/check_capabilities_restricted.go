@@ -85,13 +85,16 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		errList                   field.ErrorList
 	)
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path, errListHandler ErrListHandler) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {
 			containersMissingDropAll = append(containersMissingDropAll, container.Name)
-			err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
-				capabilityAll,
+			opts.errListHandler(func() {
+				err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
+					capabilityAll,
+				})
+				errList = append(errList, err)
 			})
-			errListHandler(&errList, err)
+
 		}
 
 		droppedAll := false
@@ -103,10 +106,12 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		}
 		if !droppedAll {
 			containersMissingDropAll = append(containersMissingDropAll, container.Name)
-			err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
-				capabilityAll,
+			opts.errListHandler(func() {
+				err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
+					capabilityAll,
+				})
+				errList = append(errList, err)
 			})
-			errListHandler(&errList, err)
 		}
 
 		addedForbidden := false
@@ -118,10 +123,12 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		}
 		if addedForbidden {
 			containersAddingForbidden = append(containersAddingForbidden, container.Name)
-			err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("add"), ""), forbiddenCapabilities.List())
-			errListHandler(&errList, err)
+			opts.errListHandler(func() {
+				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("add"), ""), forbiddenCapabilities.List())
+				errList = append(errList, err)
+			})
 		}
-	}, opts.errListHandler)
+	})
 
 	var forbiddenDetails []string
 	if len(containersMissingDropAll) > 0 {

@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -52,7 +53,7 @@ func CheckCapabilitiesBaseline() Check {
 		Versions: []VersionedCheck{
 			{
 				MinimumVersion: api.MajorMinorVersion(1, 0),
-				CheckPod:       capabilitiesBaseline_1_0,
+				CheckPod:       withOptions(capabilitiesBaseline_1_0),
 			},
 		},
 	}
@@ -76,10 +77,11 @@ var (
 	)
 )
 
-func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec) CheckResult {
+func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var badContainers []string
+	var errList field.ErrorList
 	nonDefaultCapabilities := sets.NewString()
-	visitContainers(podSpec, func(container *corev1.Container) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {
 			valid := true
 			for _, c := range container.SecurityContext.Capabilities.Add {
@@ -90,6 +92,10 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 			}
 			if !valid {
 				badContainers = append(badContainers, container.Name)
+				opts.errListHandler(func() {
+					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("add"), ""), nonDefaultCapabilities.List())
+					errList = append(errList, err)
+				})
 			}
 		}
 	})
@@ -104,6 +110,7 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 				joinQuote(badContainers),
 				joinQuote(nonDefaultCapabilities.List()),
 			),
+			ErrList: errList,
 		}
 	}
 	return CheckResult{Allowed: true}

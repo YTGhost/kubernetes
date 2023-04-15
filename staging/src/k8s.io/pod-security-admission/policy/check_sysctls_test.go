@@ -26,6 +26,7 @@ func TestSysctls(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		allowed      bool
 		expectReason string
 		expectDetail string
@@ -56,7 +57,7 @@ func TestSysctls(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := sysctls_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := sysctls_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if !tc.allowed {
 				if result.Allowed {
 					t.Fatal("expected disallowed")
@@ -80,6 +81,7 @@ func TestSysctls_1_27(t *testing.T) {
 	tests := []struct {
 		name         string
 		pod          *corev1.Pod
+		opts         options
 		allowed      bool
 		expectReason string
 		expectDetail string
@@ -108,7 +110,7 @@ func TestSysctls_1_27(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			result := sysctls_1_27(&tc.pod.ObjectMeta, &tc.pod.Spec)
+			result := sysctls_1_27(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
 			if !tc.allowed {
 				if result.Allowed {
 					t.Fatal("expected disallowed")
