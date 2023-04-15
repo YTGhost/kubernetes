@@ -94,7 +94,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 				})
 				errList = append(errList, err)
 			})
-
+			return
 		}
 
 		droppedAll := false
