@@ -97,29 +97,28 @@ func sysctls_1_27(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts 
 }
 
 func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_allowed_set sets.String, opts options) CheckResult {
-	var forbiddenSysctls []string
-	var errList field.ErrorList
+	forbiddenSysctls := violations[string]{
+		errFn: func(path *field.Path, value string) *field.Error {
+			return withBadValue(field.Forbidden(path, ""), []string{
+				value,
+			})
+		},
+	}
 
 	if podSpec.SecurityContext != nil {
 		for i, sysctl := range podSpec.SecurityContext.Sysctls {
 			if !sysctls_allowed_set.Has(sysctl.Name) {
-				forbiddenSysctls = append(forbiddenSysctls, sysctl.Name)
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(sysctlsPath.Index(i).Child("name"), ""), []string{
-						sysctl.Name,
-					})
-					errList = append(errList, err)
-				})
+				forbiddenSysctls.Add(sysctl.Name, "", withPath(sysctlsPath).index(i).child("name"), opts)
 			}
 		}
 	}
 
-	if len(forbiddenSysctls) > 0 {
+	if forbiddenSysctls.DataEmpty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "forbidden sysctls",
-			ForbiddenDetail: strings.Join(forbiddenSysctls, ", "),
-			ErrList:         errList,
+			ForbiddenDetail: strings.Join(forbiddenSysctls.Data(), ", "),
+			ErrList:         forbiddenSysctls.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

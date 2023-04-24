@@ -63,19 +63,31 @@ func CheckAllowPrivilegeEscalation() Check {
 }
 
 func allowPrivilegeEscalation_1_8(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers []string
-	var errList field.ErrorList
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
-		if container.SecurityContext == nil || container.SecurityContext.AllowPrivilegeEscalation == nil || *container.SecurityContext.AllowPrivilegeEscalation {
-			badContainers = append(badContainers, container.Name)
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("allowPrivilegeEscalation"), ""), []string{
-					"true",
-				})
-				errList = append(errList, err)
+	requiredAllowPrivilegeEscalation := violations[string]{
+		errFn: func(path *field.Path, _ string) *field.Error {
+			return field.Required(path, "")
+		},
+	}
+	forbiddenAllowPrivilegeEscalation := violations[string]{
+		errFn: func(path *field.Path, value string) *field.Error {
+			return withBadValue(field.Forbidden(path, ""), []string{
+				value,
 			})
+		},
+	}
+
+	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+		if container.SecurityContext == nil {
+			requiredAllowPrivilegeEscalation.Add("", container.Name, withPath(path).child("securityContext").child("allowPrivilegeEscalation"), opts)
+		} else if container.SecurityContext.AllowPrivilegeEscalation == nil {
+			forbiddenAllowPrivilegeEscalation.Add("nil", container.Name, withPath(path).child("securityContext").child("allowPrivilegeEscalation"), opts)
+		} else if *container.SecurityContext.AllowPrivilegeEscalation {
+			forbiddenAllowPrivilegeEscalation.Add("true", container.Name, withPath(path).child("securityContext").child("allowPrivilegeEscalation"), opts)
 		}
 	})
+
+	badContainers := append(requiredAllowPrivilegeEscalation.BadContainers(), forbiddenAllowPrivilegeEscalation.BadContainers()...)
+	errList := append(requiredAllowPrivilegeEscalation.Errs(), forbiddenAllowPrivilegeEscalation.Errs()...)
 
 	if len(badContainers) > 0 {
 		return CheckResult{

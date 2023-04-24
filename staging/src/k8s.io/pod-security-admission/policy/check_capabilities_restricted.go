@@ -89,9 +89,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {
 			containersMissingDropAll = append(containersMissingDropAll, container.Name)
 			opts.errListHandler(func() {
-				err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
-					capabilityAll,
-				})
+				err := field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), "")
 				errList = append(errList, err)
 			})
 			return
@@ -107,9 +105,11 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 		if !droppedAll {
 			containersMissingDropAll = append(containersMissingDropAll, container.Name)
 			opts.errListHandler(func() {
-				err := withBadValue(field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), ""), []string{
-					capabilityAll,
-				})
+				strSlice := make([]string, len(container.SecurityContext.Capabilities.Drop))
+				for i, v := range container.SecurityContext.Capabilities.Drop {
+					strSlice[i] = string(v)
+				}
+				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("drop"), ""), strSlice)
 				errList = append(errList, err)
 			})
 		}

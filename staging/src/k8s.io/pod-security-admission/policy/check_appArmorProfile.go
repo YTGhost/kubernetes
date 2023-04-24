@@ -63,26 +63,29 @@ func allowedProfile(profile string) bool {
 }
 
 func appArmorProfile_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var forbiddenValues []string
-	var errList field.ErrorList
+	forbiddenAppArmorProfile := violations[string]{
+		errFn: func(path *field.Path, value string) *field.Error {
+			v := strings.Split(value, "=")[1]
+			return withBadValue(field.Forbidden(path, ""), []string{
+				v,
+			})
+		},
+	}
 
 	for k, v := range podMetadata.Annotations {
 		if strings.HasPrefix(k, corev1.AppArmorBetaContainerAnnotationKeyPrefix) && !allowedProfile(v) {
-			forbiddenValues = append(forbiddenValues, fmt.Sprintf("%s=%q", k, v))
+			forbiddenAppArmorProfile.Add(fmt.Sprintf("%s=%q", k, v), "", withPath(annotationsPath.Key(k)), opts)
 		}
-		opts.errListHandler(func() {
-			errList = append(errList, withBadValue(field.Forbidden(annotationsPath.Key(k), ""), []string{
-				v,
-			}))
-		})
 	}
+
+	forbiddenValues := forbiddenAppArmorProfile.Data()
 	if len(forbiddenValues) > 0 {
 		sort.Strings(forbiddenValues)
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: pluralize("forbidden AppArmor profile", "forbidden AppArmor profiles", len(forbiddenValues)),
 			ForbiddenDetail: strings.Join(forbiddenValues, ", "),
-			ErrList:         errList,
+			ErrList:         forbiddenAppArmorProfile.Errs(),
 		}
 	}
 

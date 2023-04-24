@@ -78,28 +78,30 @@ var (
 )
 
 func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers []string
-	var errList field.ErrorList
+	forbiddenCapabilities := violations[[]string]{
+		errFn: func(path *field.Path, value []string) *field.Error {
+			return withBadValue(field.Forbidden(path, ""), value)
+		},
+	}
 	nonDefaultCapabilities := sets.NewString()
 	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
 		if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {
 			valid := true
+			forbiddenValue := sets.NewString()
 			for _, c := range container.SecurityContext.Capabilities.Add {
 				if !capabilities_allowed_1_0.Has(string(c)) {
 					valid = false
 					nonDefaultCapabilities.Insert(string(c))
+					forbiddenValue.Insert(string(c))
 				}
 			}
 			if !valid {
-				badContainers = append(badContainers, container.Name)
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("add"), ""), nonDefaultCapabilities.List())
-					errList = append(errList, err)
-				})
+				forbiddenCapabilities.Add(forbiddenValue.List(), container.Name, withPath(path).child("securityContext").child("capabilities").child("add"), opts)
 			}
 		}
 	})
 
+	badContainers := forbiddenCapabilities.BadContainers()
 	if len(badContainers) > 0 {
 		return CheckResult{
 			Allowed:         false,
@@ -110,7 +112,7 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 				joinQuote(badContainers),
 				joinQuote(nonDefaultCapabilities.List()),
 			),
-			ErrList: errList,
+			ErrList: forbiddenCapabilities.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}
