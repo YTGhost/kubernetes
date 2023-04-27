@@ -18,8 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/pod-security-admission/api"
@@ -63,42 +61,29 @@ func CheckAllowPrivilegeEscalation() Check {
 }
 
 func allowPrivilegeEscalation_1_8(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	requiredAllowPrivilegeEscalation := violations[string]{
-		errFn: func(path *field.Path, _ string) *field.Error {
-			return field.Required(path, "")
-		},
-	}
-	forbiddenAllowPrivilegeEscalation := violations[string]{
-		errFn: func(path *field.Path, value string) *field.Error {
-			return withBadValue(field.Forbidden(path, ""), []string{
-				value,
-			})
-		},
-	}
+	var badContainers violations[string]
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
+		pathFn = pathFn.child("securityContext").child("allowPrivilegeEscalation")
 		if container.SecurityContext == nil {
-			requiredAllowPrivilegeEscalation.Add("", container.Name, withPath(path).child("securityContext").child("allowPrivilegeEscalation"), opts)
+			badContainers.Add(container.Name, opts, required(pathFn))
 		} else if container.SecurityContext.AllowPrivilegeEscalation == nil {
-			forbiddenAllowPrivilegeEscalation.Add("nil", container.Name, withPath(path).child("securityContext").child("allowPrivilegeEscalation"), opts)
+			badContainers.Add(container.Name, opts, forbidden(pathFn, []string{"nil"}))
 		} else if *container.SecurityContext.AllowPrivilegeEscalation {
-			forbiddenAllowPrivilegeEscalation.Add("true", container.Name, withPath(path).child("securityContext").child("allowPrivilegeEscalation"), opts)
+			badContainers.Add(container.Name, opts, forbidden(pathFn, []string{"true"}))
 		}
 	})
 
-	badContainers := append(requiredAllowPrivilegeEscalation.BadContainers(), forbiddenAllowPrivilegeEscalation.BadContainers()...)
-	errList := append(requiredAllowPrivilegeEscalation.Errs(), forbiddenAllowPrivilegeEscalation.Errs()...)
-
-	if len(badContainers) > 0 {
+	if !badContainers.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "allowPrivilegeEscalation != false",
 			ForbiddenDetail: fmt.Sprintf(
 				"%s %s must set securityContext.allowPrivilegeEscalation=false",
-				pluralize("container", "containers", len(badContainers)),
-				joinQuote(badContainers),
+				pluralize("container", "containers", badContainers.Len()),
+				joinQuote(badContainers.Data()),
 			),
-			ErrList: errList,
+			ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

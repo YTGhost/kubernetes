@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -61,88 +60,75 @@ func CheckRunAsNonRoot() Check {
 
 func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set runAsNonRoot=false
-	var badSetters []string
-	var errList field.ErrorList
+	var badSetters violations[string]
 
 	podRunAsNonRoot := false
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsNonRoot != nil {
 		if !*podSpec.SecurityContext.RunAsNonRoot {
-			badSetters = append(badSetters, "pod")
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(runAsNonRootPath, ""), []string{
-					"false",
-				})
-				errList = append(errList, err)
-			})
+			badSetters.Add("pod", opts, forbidden(runAsNonRootPath, []string{
+				"false",
+			}))
 		} else {
 			podRunAsNonRoot = true
 		}
 	}
 
 	// containers that explicitly set runAsNonRoot=false
-	var explicitlyBadContainers []string
+	var explicitlyBadContainers violations[string]
 	// containers that didn't set runAsNonRoot and aren't caught by a pod-level runAsNonRoot=true
-	var implicitlyBadContainers []string
+	var implicitlyBadContainers violations[string]
+	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.RunAsNonRoot != nil {
 			// container explicitly set runAsNonRoot
 			if !*container.SecurityContext.RunAsNonRoot {
-				// container explicitly set runAsNonRoot to a bad value
-				explicitlyBadContainers = append(explicitlyBadContainers, container.Name)
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("runAsNonRoot"), ""), []string{
-						"false",
-					})
-					errList = append(errList, err)
-				})
+				explicitlyBadContainers.Add(container.Name, opts)
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("runAsNonRoot"), []string{
+					"false",
+				}))
 			}
 		} else {
 			// container did not explicitly set runAsNonRoot
 			if !podRunAsNonRoot {
 				// no pod-level runAsNonRoot=true, so this container implicitly has a bad value
-				implicitlyBadContainers = append(implicitlyBadContainers, container.Name)
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("runAsNonRoot"), ""), []string{
-						"false",
-					})
-					errList = append(errList, err)
-				})
+				implicitlyBadContainers.Add(container.Name, opts, required(runAsNonRootPath))
 			}
 		}
 	})
 
-	if len(explicitlyBadContainers) > 0 {
-		badSetters = append(
-			badSetters,
+	if !explicitlyBadContainers.Empty() {
+		badSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", len(explicitlyBadContainers)),
-				joinQuote(explicitlyBadContainers),
+				pluralize("container", "containers", explicitlyBadContainers.Len()),
+				joinQuote(explicitlyBadContainers.Data()),
 			),
+			opts,
+			explicitlyErrFns...,
 		)
 	}
 	// pod or containers explicitly set runAsNonRoot=false
-	if len(badSetters) > 0 {
+	if !badSetters.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "runAsNonRoot != true",
-			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.runAsNonRoot=false", strings.Join(badSetters, " and ")),
-			ErrList:         errList,
+			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.runAsNonRoot=false", strings.Join(badSetters.Data(), " and ")),
+			ErrList:         badSetters.Errs(),
 		}
 	}
 
 	// pod didn't set runAsNonRoot and not all containers opted into runAsNonRoot
-	if len(implicitlyBadContainers) > 0 {
+	if !implicitlyBadContainers.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "runAsNonRoot != true",
 			ForbiddenDetail: fmt.Sprintf(
 				"pod or %s %s must set securityContext.runAsNonRoot=true",
-				pluralize("container", "containers", len(implicitlyBadContainers)),
-				joinQuote(implicitlyBadContainers),
+				pluralize("container", "containers", implicitlyBadContainers.Len()),
+				joinQuote(implicitlyBadContainers.Data()),
 			),
-			ErrList: errList,
+			ErrList: implicitlyBadContainers.Errs(),
 		}
 	}
 

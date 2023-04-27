@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -62,51 +61,43 @@ func CheckRunAsUser() Check {
 
 func runAsUser_1_23(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set runAsUser=0
-	var badSetters []string
-	var errList field.ErrorList
+	var badSetters violations[string]
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsUser != nil && *podSpec.SecurityContext.RunAsUser == 0 {
-		badSetters = append(badSetters, "pod")
-		opts.errListHandler(func() {
-			err := withBadValue(field.Forbidden(runAsUserPath, ""), []string{
-				"0",
-			})
-			errList = append(errList, err)
-		})
+		badSetters.Add("pod", opts, forbidden(runAsUserPath, []string{"0"}))
 	}
 
 	// containers that explicitly set runAsUser=0
-	var explicitlyBadContainers []string
+	var explicitlyBadContainers violations[string]
+	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.RunAsUser != nil && *container.SecurityContext.RunAsUser == 0 {
-			explicitlyBadContainers = append(explicitlyBadContainers, container.Name)
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("runAsUser"), ""), []string{
-					"0",
-				})
-				errList = append(errList, err)
-			})
+			explicitlyBadContainers.Add(container.Name, opts)
+			explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("runAsUser"), []string{
+				"0",
+			}))
 		}
 	})
 
-	if len(explicitlyBadContainers) > 0 {
-		badSetters = append(
-			badSetters,
+	if !explicitlyBadContainers.Empty() {
+		badSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", len(explicitlyBadContainers)),
-				joinQuote(explicitlyBadContainers),
+				pluralize("container", "containers", explicitlyBadContainers.Len()),
+				joinQuote(explicitlyBadContainers.Data()),
 			),
+			opts,
+			explicitlyErrFns...,
 		)
 	}
 	// pod or containers explicitly set runAsUser=0
-	if len(badSetters) > 0 {
+	if !badSetters.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "runAsUser=0",
-			ForbiddenDetail: fmt.Sprintf("%s must not set runAsUser=0", strings.Join(badSetters, " and ")),
-			ErrList:         errList,
+			ForbiddenDetail: fmt.Sprintf("%s must not set runAsUser=0", strings.Join(badSetters.Data(), " and ")),
+			ErrList:         badSetters.Errs(),
 		}
 	}
 

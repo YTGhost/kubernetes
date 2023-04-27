@@ -18,8 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/pod-security-admission/api"
@@ -55,29 +53,26 @@ func CheckPrivileged() Check {
 }
 
 func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers []string
-	var errList field.ErrorList
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	var badContainers violations[string]
+
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-			badContainers = append(badContainers, container.Name)
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("privileged"), ""), []string{
-					"true",
-				})
-				errList = append(errList, err)
-			})
+			badContainers.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("privileged"), []string{
+				"true",
+			}))
 		}
 	})
-	if len(badContainers) > 0 {
+
+	if !badContainers.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "privileged",
 			ForbiddenDetail: fmt.Sprintf(
 				`%s %s must not set securityContext.privileged=true`,
-				pluralize("container", "containers", len(badContainers)),
-				joinQuote(badContainers),
+				pluralize("container", "containers", badContainers.Len()),
+				joinQuote(badContainers.Data()),
 			),
-			ErrList: errList,
+			ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

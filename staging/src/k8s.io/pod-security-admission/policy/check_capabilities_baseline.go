@@ -18,8 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -78,13 +76,9 @@ var (
 )
 
 func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	forbiddenCapabilities := violations[[]string]{
-		errFn: func(path *field.Path, value []string) *field.Error {
-			return withBadValue(field.Forbidden(path, ""), value)
-		},
-	}
+	var badContainers violations[string]
 	nonDefaultCapabilities := sets.NewString()
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {
 			valid := true
 			forbiddenValue := sets.NewString()
@@ -96,23 +90,22 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 				}
 			}
 			if !valid {
-				forbiddenCapabilities.Add(forbiddenValue.List(), container.Name, withPath(path).child("securityContext").child("capabilities").child("add"), opts)
+				badContainers.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValue.List()))
 			}
 		}
 	})
 
-	badContainers := forbiddenCapabilities.BadContainers()
-	if len(badContainers) > 0 {
+	if !badContainers.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "non-default capabilities",
 			ForbiddenDetail: fmt.Sprintf(
 				"%s %s must not include %s in securityContext.capabilities.add",
-				pluralize("container", "containers", len(badContainers)),
-				joinQuote(badContainers),
+				pluralize("container", "containers", badContainers.Len()),
+				joinQuote(badContainers.Data()),
 				joinQuote(nonDefaultCapabilities.List()),
 			),
-			ErrList: forbiddenCapabilities.Errs(),
+			ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

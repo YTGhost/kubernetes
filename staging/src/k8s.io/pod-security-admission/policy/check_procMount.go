@@ -18,8 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -59,10 +57,9 @@ func CheckProcMount() Check {
 }
 
 func procMount_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers []string
-	var errList field.ErrorList
+	var badContainers violations[string]
 	forbiddenProcMountTypes := sets.NewString()
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		// allow if the security context is nil.
 		if container.SecurityContext == nil {
 			return
@@ -73,27 +70,23 @@ func procMount_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 		}
 		// check if the value of the proc mount type is valid.
 		if *container.SecurityContext.ProcMount != corev1.DefaultProcMount {
-			badContainers = append(badContainers, container.Name)
+			badContainers.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("procMount"), []string{
+				string(*container.SecurityContext.ProcMount)},
+			))
 			forbiddenProcMountTypes.Insert(string(*container.SecurityContext.ProcMount))
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("procMount"), ""), []string{
-					string(*container.SecurityContext.ProcMount),
-				})
-				errList = append(errList, err)
-			})
 		}
 	})
-	if len(badContainers) > 0 {
+	if !badContainers.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "procMount",
 			ForbiddenDetail: fmt.Sprintf(
 				"%s %s must not set securityContext.procMount to %s",
-				pluralize("container", "containers", len(badContainers)),
-				joinQuote(badContainers),
+				pluralize("container", "containers", badContainers.Len()),
+				joinQuote(badContainers.Data()),
 				joinQuote(forbiddenProcMountTypes.List()),
 			),
-			ErrList: errList,
+			ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -58,20 +57,17 @@ func CheckWindowsHostProcess() Check {
 }
 
 func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers []string
-	var errList field.ErrorList
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	var badContainers violations[string]
+	var errFns []ErrFn
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil &&
 			container.SecurityContext.WindowsOptions != nil &&
 			container.SecurityContext.WindowsOptions.HostProcess != nil &&
 			*container.SecurityContext.WindowsOptions.HostProcess {
-			badContainers = append(badContainers, container.Name)
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("windowsOptions").Child("hostProcess"), ""), []string{
-					"true",
-				})
-				errList = append(errList, err)
-			})
+			badContainers.Add(container.Name, opts)
+			errFns = append(errFns, forbidden(pathFn.child("securityContext").child("windowsOptions").child("hostProcess"), []string{
+				"true",
+			}))
 		}
 	})
 
@@ -81,35 +77,31 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 		podSpec.SecurityContext.WindowsOptions.HostProcess != nil &&
 		*podSpec.SecurityContext.WindowsOptions.HostProcess {
 		podSpecForbidden = true
-		opts.errListHandler(func() {
-			err := withBadValue(field.Forbidden(hostProcessPath, ""), []string{
-				"true",
-			})
-			errList = append(errList, err)
-		})
 	}
 
 	// pod or containers explicitly set hostProcess=true
-	var forbiddenSetters []string
+	var forbiddenSetters violations[string]
 	if podSpecForbidden {
-		forbiddenSetters = append(forbiddenSetters, "pod")
+		forbiddenSetters.Add("pod", opts, forbidden(hostProcessPath, []string{
+			"true",
+		}))
 	}
-	if len(badContainers) > 0 {
-		forbiddenSetters = append(
-			forbiddenSetters,
+	if !badContainers.Empty() {
+		forbiddenSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", len(badContainers)),
-				joinQuote(badContainers),
+				pluralize("container", "containers", badContainers.Len()),
+				joinQuote(badContainers.Data()),
 			),
+			opts,
 		)
 	}
-	if len(forbiddenSetters) > 0 {
+	if !forbiddenSetters.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "hostProcess",
-			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.windowsOptions.hostProcess=true", strings.Join(forbiddenSetters, " and ")),
-			ErrList:         errList,
+			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.windowsOptions.hostProcess=true", strings.Join(forbiddenSetters.Data(), " and ")),
+			ErrList:         forbiddenSetters.Errs(),
 		}
 	}
 

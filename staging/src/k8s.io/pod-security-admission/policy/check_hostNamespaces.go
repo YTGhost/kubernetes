@@ -17,7 +17,6 @@ limitations under the License.
 package policy
 
 import (
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -36,12 +35,6 @@ spec.hostIPC
 
 **Allowed Values:** undefined, false
 */
-
-var (
-	hostNetworkPath = specPath.Child("hostNetwork")
-	hostPIDPath     = specPath.Child("hostPID")
-	hostIPCPath     = specPath.Child("hostIPC")
-)
 
 func init() {
 	addCheck(CheckHostNamespaces)
@@ -63,42 +56,26 @@ func CheckHostNamespaces() Check {
 }
 
 func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var hostNamespaces []string
-	var errList field.ErrorList
+	var hostNamespaces violations[string]
 
 	if podSpec.HostNetwork {
-		hostNamespaces = append(hostNamespaces, "hostNetwork=true")
-		opts.errListHandler(func() {
-			errList = append(errList, withBadValue(field.Forbidden(hostNetworkPath, ""), []string{
-				"hostNetwork=true",
-			}))
-		})
+		hostNamespaces.Add("hostNetwork=true", opts, forbidden(hostNetworkPath, []string{"hostNetwork=true"}))
 	}
 
 	if podSpec.HostPID {
-		hostNamespaces = append(hostNamespaces, "hostPID=true")
-		opts.errListHandler(func() {
-			errList = append(errList, withBadValue(field.Forbidden(hostPIDPath, ""), []string{
-				"hostPID=true",
-			}))
-		})
+		hostNamespaces.Add("hostPID=true", opts, forbidden(hostPIDPath, []string{"hostPID=true"}))
 	}
 
 	if podSpec.HostIPC {
-		hostNamespaces = append(hostNamespaces, "hostIPC=true")
-		opts.errListHandler(func() {
-			errList = append(errList, withBadValue(field.Forbidden(hostIPCPath, ""), []string{
-				"hostIPC=true",
-			}))
-		})
+		hostNamespaces.Add("hostIPC=true", opts, forbidden(hostIPCPath, []string{"hostIPC=true"}))
 	}
 
-	if len(hostNamespaces) > 0 {
+	if !hostNamespaces.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "host namespaces",
-			ForbiddenDetail: strings.Join(hostNamespaces, ", "),
-			ErrList:         errList,
+			ForbiddenDetail: strings.Join(hostNamespaces.Data(), ", "),
+			ErrList:         hostNamespaces.Errs(),
 		}
 	}
 

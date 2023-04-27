@@ -18,8 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -86,8 +84,7 @@ func CheckRestrictedVolumes() Check {
 }
 
 func restrictedVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badVolumes []string
-	var errList field.ErrorList
+	var badVolumes violations[string]
 	badVolumeTypes := sets.NewString()
 
 	for i, volume := range podSpec.Volumes {
@@ -103,203 +100,136 @@ func restrictedVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSp
 			continue
 
 		default:
-			badVolumes = append(badVolumes, volume.Name)
-			volumesIndexPath := volumesPath.Index(i)
+			volumesIndexPath := volumesPath.index(i)
 
 			switch {
 			case volume.HostPath != nil:
 				badVolumeTypes.Insert("hostPath")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("hostPath").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("hostPath").string(),
+				}))
 			case volume.GCEPersistentDisk != nil:
 				badVolumeTypes.Insert("gcePersistentDisk")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("gcePersistentDisk").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("gcePersistentDisk").string(),
+				}))
 			case volume.AWSElasticBlockStore != nil:
 				badVolumeTypes.Insert("awsElasticBlockStore")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("awsElasticBlockStore").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("awsElasticBlockStore").string(),
+				}))
 			case volume.GitRepo != nil:
 				badVolumeTypes.Insert("gitRepo")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("gitRepo").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("gitRepo").string(),
+				}))
 			case volume.NFS != nil:
 				badVolumeTypes.Insert("nfs")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("gitRepo").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("nfs").string(),
+				}))
 			case volume.ISCSI != nil:
 				badVolumeTypes.Insert("iscsi")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("iscsi").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("iscsi").string(),
+				}))
 			case volume.Glusterfs != nil:
 				badVolumeTypes.Insert("glusterfs")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("glusterfs").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("glusterfs").string(),
+				}))
 			case volume.RBD != nil:
 				badVolumeTypes.Insert("rbd")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("rbd").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("rbd").string(),
+				}))
 			case volume.FlexVolume != nil:
 				badVolumeTypes.Insert("flexVolume")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("flexVolume").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("flexVolume").string(),
+				}))
 			case volume.Cinder != nil:
 				badVolumeTypes.Insert("cinder")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("cinder").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("cinder").string(),
+				}))
 			case volume.CephFS != nil:
 				badVolumeTypes.Insert("cephfs")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("cephfs").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("cephfs").string(),
+				}))
 			case volume.Flocker != nil:
 				badVolumeTypes.Insert("flocker")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("flocker").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("flocker").string(),
+				}))
 			case volume.FC != nil:
 				badVolumeTypes.Insert("fc")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("fc").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("fc").string(),
+				}))
 			case volume.AzureFile != nil:
 				badVolumeTypes.Insert("azureFile")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("azureFile").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("azureFile").string(),
+				}))
 			case volume.VsphereVolume != nil:
 				badVolumeTypes.Insert("vsphereVolume")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("vsphereVolume").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("vsphereVolume").string(),
+				}))
 			case volume.Quobyte != nil:
 				badVolumeTypes.Insert("quobyte")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("quobyte").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("quobyte").string(),
+				}))
 			case volume.AzureDisk != nil:
 				badVolumeTypes.Insert("azureDisk")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("azureDisk").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("azureDisk").string(),
+				}))
 			case volume.PhotonPersistentDisk != nil:
 				badVolumeTypes.Insert("photonPersistentDisk")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("photonPersistentDisk").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("photonPersistentDisk").string(),
+				}))
 			case volume.PortworxVolume != nil:
 				badVolumeTypes.Insert("portworxVolume")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("portworxVolume").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("portworxVolume").string(),
+				}))
 			case volume.ScaleIO != nil:
 				badVolumeTypes.Insert("scaleIO")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("scaleIO").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("scaleIO").string(),
+				}))
 			case volume.StorageOS != nil:
 				badVolumeTypes.Insert("storageos")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("storageos").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("storageos").string(),
+				}))
 			default:
 				badVolumeTypes.Insert("unknown")
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(volumesIndexPath, ""), []string{
-						volumesIndexPath.Child("unknown").String(),
-					})
-					errList = append(errList, err)
-				})
+				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath, []string{
+					volumesIndexPath.child("unknown").string(),
+				}))
 			}
 		}
 	}
 
-	if len(badVolumes) > 0 {
+	if !badVolumes.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "restricted volume types",
 			ForbiddenDetail: fmt.Sprintf(
 				"%s %s %s %s %s",
-				pluralize("volume", "volumes", len(badVolumes)),
-				joinQuote(badVolumes),
-				pluralize("uses", "use", len(badVolumes)),
+				pluralize("volume", "volumes", badVolumes.Len()),
+				joinQuote(badVolumes.Data()),
+				pluralize("uses", "use", badVolumes.Len()),
 				pluralize("restricted volume type", "restricted volume types", len(badVolumeTypes)),
 				joinQuote(badVolumeTypes.List()),
 			),
-			ErrList: errList,
+			ErrList: badVolumes.Errs(),
 		}
 	}
 

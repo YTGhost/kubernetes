@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -78,9 +77,7 @@ var (
 func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var (
 		// sources that set bad seLinuxOptions
-		badSetters []string
-		// detailed list of restricted field errors
-		errList field.ErrorList
+		badSetters violations[string]
 
 		// invalid type values set
 		badTypes = sets.NewString()
@@ -109,40 +106,37 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SELinuxOptions != nil {
 		if !validSELinuxOptions(podSpec.SecurityContext.SELinuxOptions) {
-			badSetters = append(badSetters, "pod")
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(seLinuxOptionsTypePath, ""), []string{
-					podSpec.SecurityContext.SELinuxOptions.Type,
-				})
-				errList = append(errList, err)
-			})
+			badSetters.Add("pod", opts, forbidden(seLinuxOptionsTypePath, []string{
+				podSpec.SecurityContext.SELinuxOptions.Type,
+			}))
 		}
 	}
 
-	var badContainers []string
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	var badContainers violations[string]
+	var errFns []ErrFn
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.SELinuxOptions != nil {
 			if !validSELinuxOptions(container.SecurityContext.SELinuxOptions) {
-				badContainers = append(badContainers, container.Name)
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("seLinuxOptions").Child("type"), ""), []string{
+				badContainers.Add(container.Name, opts)
+				errFns = append(errFns, forbidden(pathFn.child("securityContext").child("seLinuxOptions").child("type"), []string{
 					container.SecurityContext.SELinuxOptions.Type,
-				})
-				errList = append(errList, err)
+				}))
 			}
 		}
 	})
-	if len(badContainers) > 0 {
-		badSetters = append(
-			badSetters,
+	if !badContainers.Empty() {
+		badSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", len(badContainers)),
-				joinQuote(badContainers),
+				pluralize("container", "containers", badContainers.Len()),
+				joinQuote(badContainers.Data()),
 			),
+			opts,
+			errFns...,
 		)
 	}
 
-	if len(badSetters) > 0 {
+	if !badSetters.Empty() {
 		var badData []string
 		if len(badTypes) > 0 {
 			badData = append(badData, fmt.Sprintf(
@@ -163,10 +157,10 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			ForbiddenReason: "seLinuxOptions",
 			ForbiddenDetail: fmt.Sprintf(
 				`%s set forbidden securityContext.seLinuxOptions: %s`,
-				strings.Join(badSetters, " and "),
+				strings.Join(badSetters.Data(), " and "),
 				strings.Join(badData, "; "),
 			),
-			ErrList: errList,
+			ErrList: badSetters.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

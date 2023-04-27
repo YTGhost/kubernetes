@@ -17,7 +17,6 @@ limitations under the License.
 package policy
 
 import (
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -97,23 +96,19 @@ func sysctls_1_27(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts 
 }
 
 func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_allowed_set sets.String, opts options) CheckResult {
-	forbiddenSysctls := violations[string]{
-		errFn: func(path *field.Path, value string) *field.Error {
-			return withBadValue(field.Forbidden(path, ""), []string{
-				value,
-			})
-		},
-	}
+	var forbiddenSysctls violations[string]
 
 	if podSpec.SecurityContext != nil {
 		for i, sysctl := range podSpec.SecurityContext.Sysctls {
 			if !sysctls_allowed_set.Has(sysctl.Name) {
-				forbiddenSysctls.Add(sysctl.Name, "", withPath(sysctlsPath).index(i).child("name"), opts)
+				forbiddenSysctls.Add(sysctl.Name, opts, forbidden(sysctlsPath.index(i).child("name"), []string{
+					sysctl.Name,
+				}))
 			}
 		}
 	}
 
-	if forbiddenSysctls.DataEmpty() {
+	if !forbiddenSysctls.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "forbidden sysctls",

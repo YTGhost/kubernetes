@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -69,96 +68,84 @@ func CheckSeccompProfileRestricted() Check {
 // seccompProfileRestricted_1_19 checks restricted policy on securityContext.seccompProfile field
 func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set seccompProfile.type to a bad value
-	var badSetters []string
+	var badSetters violations[string]
 	badValues := sets.NewString()
-	var errList field.ErrorList
 
 	podSeccompSet := false
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SeccompProfile != nil {
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
-			badSetters = append(badSetters, "pod")
+			badSetters.Add("pod", opts, forbidden(seccompProfileTypePath, []string{
+				string(podSpec.SecurityContext.SeccompProfile.Type),
+			}))
 			badValues.Insert(string(podSpec.SecurityContext.SeccompProfile.Type))
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(seccompProfileTypePath, ""), []string{
-					string(podSpec.SecurityContext.SeccompProfile.Type),
-				})
-				errList = append(errList, err)
-			})
 		} else {
 			podSeccompSet = true
 		}
 	}
 
 	// containers that explicitly set seccompProfile.type to a bad value
-	var explicitlyBadContainers []string
+	var explicitlyBadContainers violations[string]
 	// containers that didn't set seccompProfile and aren't caught by a pod-level seccompProfile
-	var implicitlyBadContainers []string
+	var implicitlyBadContainers violations[string]
+	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(c *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(c *corev1.Container, pathFn PathFn) {
 		if c.SecurityContext != nil && c.SecurityContext.SeccompProfile != nil {
 			// container explicitly set seccompProfile
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
-				explicitlyBadContainers = append(explicitlyBadContainers, c.Name)
+				explicitlyBadContainers.Add(c.Name, opts)
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("seccompProfile").child("type"), []string{
+					string(c.SecurityContext.SeccompProfile.Type),
+				}))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("seccompProfile").Child("type"), ""), []string{
-						string(c.SecurityContext.SeccompProfile.Type),
-					})
-					errList = append(errList, err)
-				})
 			}
 		} else {
 			// container did not explicitly set seccompProfile
 			if !podSeccompSet {
 				// no valid pod-level seccompProfile, so this container implicitly has a bad value
-				implicitlyBadContainers = append(implicitlyBadContainers, c.Name)
-				opts.errListHandler(func() {
-					err := withBadValue(field.Forbidden(path.Child("securityContext").Child("seccompProfile").Child("type"), ""), []string{
-						"",
-					})
-					errList = append(errList, err)
-				})
+				implicitlyBadContainers.Add(c.Name, opts, required(seccompProfileTypePath))
 			}
 		}
 	})
 
-	if len(explicitlyBadContainers) > 0 {
-		badSetters = append(
-			badSetters,
+	if !explicitlyBadContainers.Empty() {
+		badSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", len(explicitlyBadContainers)),
-				joinQuote(explicitlyBadContainers),
+				pluralize("container", "containers", explicitlyBadContainers.Len()),
+				joinQuote(explicitlyBadContainers.Data()),
 			),
+			opts,
+			explicitlyErrFns...,
 		)
 	}
 	// pod or containers explicitly set bad seccompProfiles
-	if len(badSetters) > 0 {
+	if !badSetters.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "seccompProfile",
 			ForbiddenDetail: fmt.Sprintf(
 				"%s must not set securityContext.seccompProfile.type to %s",
-				strings.Join(badSetters, " and "),
+				strings.Join(badSetters.Data(), " and "),
 				joinQuote(badValues.List()),
 			),
-			ErrList: errList,
+			ErrList: badSetters.Errs(),
 		}
 	}
 
 	// pod didn't set seccompProfile and not all containers opted into seccompProfile
-	if len(implicitlyBadContainers) > 0 {
+	if !implicitlyBadContainers.Empty() {
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "seccompProfile",
 			ForbiddenDetail: fmt.Sprintf(
 				`pod or %s %s must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
-				pluralize("container", "containers", len(implicitlyBadContainers)),
-				joinQuote(implicitlyBadContainers),
+				pluralize("container", "containers", implicitlyBadContainers.Len()),
+				joinQuote(implicitlyBadContainers.Data()),
 			),
-			ErrList: errList,
+			ErrList: implicitlyBadContainers.Errs(),
 		}
 	}
 

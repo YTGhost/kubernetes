@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sort"
 	"strings"
 
@@ -63,18 +62,11 @@ func allowedProfile(profile string) bool {
 }
 
 func appArmorProfile_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	forbiddenAppArmorProfile := violations[string]{
-		errFn: func(path *field.Path, value string) *field.Error {
-			v := strings.Split(value, "=")[1]
-			return withBadValue(field.Forbidden(path, ""), []string{
-				v,
-			})
-		},
-	}
+	var forbiddenAppArmorProfile violations[string]
 
 	for k, v := range podMetadata.Annotations {
 		if strings.HasPrefix(k, corev1.AppArmorBetaContainerAnnotationKeyPrefix) && !allowedProfile(v) {
-			forbiddenAppArmorProfile.Add(fmt.Sprintf("%s=%q", k, v), "", withPath(annotationsPath.Key(k)), opts)
+			forbiddenAppArmorProfile.Add(fmt.Sprintf("%s=%q", k, v), opts, forbidden(annotationsPath.key(k), []string{v}))
 		}
 	}
 

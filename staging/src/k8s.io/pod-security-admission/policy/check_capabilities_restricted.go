@@ -18,7 +18,6 @@ package policy
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -78,20 +77,13 @@ func CheckCapabilitiesRestricted() Check {
 }
 
 func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var (
-		containersMissingDropAll  []string
-		containersAddingForbidden []string
-		forbiddenCapabilities     = sets.NewString()
-		errList                   field.ErrorList
-	)
+	var forbiddenCapabilities = sets.NewString()
+	var containersMissingDropAll violations[string]
+	var containersAddingForbidden violations[string]
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, path *field.Path) {
+	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {
-			containersMissingDropAll = append(containersMissingDropAll, container.Name)
-			opts.errListHandler(func() {
-				err := field.Required(path.Child("securityContext").Child("capabilities").Child("drop"), "")
-				errList = append(errList, err)
-			})
+			containersMissingDropAll.Add(container.Name, opts, required(pathFn.child("securityContext").child("capabilities").child("drop")))
 			return
 		}
 
@@ -103,15 +95,11 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			}
 		}
 		if !droppedAll {
-			containersMissingDropAll = append(containersMissingDropAll, container.Name)
-			opts.errListHandler(func() {
-				strSlice := make([]string, len(container.SecurityContext.Capabilities.Drop))
-				for i, v := range container.SecurityContext.Capabilities.Drop {
-					strSlice[i] = string(v)
-				}
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("drop"), ""), strSlice)
-				errList = append(errList, err)
-			})
+			strSlice := make([]string, len(container.SecurityContext.Capabilities.Drop))
+			for i, v := range container.SecurityContext.Capabilities.Drop {
+				strSlice[i] = string(v)
+			}
+			containersMissingDropAll.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("drop"), strSlice))
 		}
 
 		addedForbidden := false
@@ -122,26 +110,23 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			}
 		}
 		if addedForbidden {
-			containersAddingForbidden = append(containersAddingForbidden, container.Name)
-			opts.errListHandler(func() {
-				err := withBadValue(field.Forbidden(path.Child("securityContext").Child("capabilities").Child("add"), ""), forbiddenCapabilities.List())
-				errList = append(errList, err)
-			})
+			containersAddingForbidden.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenCapabilities.List()))
 		}
 	})
 
 	var forbiddenDetails []string
-	if len(containersMissingDropAll) > 0 {
+	errList := append(containersMissingDropAll.Errs(), containersAddingForbidden.Errs()...)
+	if !containersMissingDropAll.Empty() {
 		forbiddenDetails = append(forbiddenDetails, fmt.Sprintf(
 			`%s %s must set securityContext.capabilities.drop=["ALL"]`,
-			pluralize("container", "containers", len(containersMissingDropAll)),
-			joinQuote(containersMissingDropAll)))
+			pluralize("container", "containers", containersMissingDropAll.Len()),
+			joinQuote(containersMissingDropAll.Data())))
 	}
-	if len(containersAddingForbidden) > 0 {
+	if !containersAddingForbidden.Empty() {
 		forbiddenDetails = append(forbiddenDetails, fmt.Sprintf(
 			`%s %s must not include %s in securityContext.capabilities.add`,
-			pluralize("container", "containers", len(containersAddingForbidden)),
-			joinQuote(containersAddingForbidden),
+			pluralize("container", "containers", containersAddingForbidden.Len()),
+			joinQuote(containersAddingForbidden.Data()),
 			joinQuote(forbiddenCapabilities.List())))
 	}
 	if len(forbiddenDetails) > 0 {
