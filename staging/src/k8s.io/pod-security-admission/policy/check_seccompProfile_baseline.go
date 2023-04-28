@@ -151,7 +151,7 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers.Add(c.Name, opts)
 				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("seccompProfile").child("type"), []string{
-					string(podSpec.SecurityContext.SeccompProfile.Type),
+					string(c.SecurityContext.SeccompProfile.Type),
 				}))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))
 			}
