@@ -88,11 +88,3 @@ func (parent PathFn) key(key string) PathFn {
 		return p.Key(key)
 	}
 }
-
-func (parent PathFn) string() string {
-	if parent == nil {
-		return "<nil>"
-	}
-	p := parent()
-	return p.String()
-}
