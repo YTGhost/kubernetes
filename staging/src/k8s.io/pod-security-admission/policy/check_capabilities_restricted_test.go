@@ -17,6 +17,9 @@ limitations under the License.
 package policy
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -24,23 +27,48 @@ import (
 
 func TestCapabilitiesRestricted_1_25(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
-		allowed      bool
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
+		allowed       bool
 	}{
 		{
 			name: "multiple containers",
 			pod: &corev1.Pod{Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
 					{Name: "a", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"FOO", "BAR"}}}},
-					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}, Drop: []corev1.Capability{"FOO", "BAR"}}}},
 					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
+		},
+		{
+			name: "multiple containers, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"FOO", "BAR"}}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}, Drop: []corev1.Capability{"FOO", "BAR"}}}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `unrestricted capabilities`,
+			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[0].securityContext.capabilities.add", BadValue: []string{"BAR", "FOO"}},
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.capabilities.drop", BadValue: ""},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.capabilities.add", BadValue: []string{"BAR", "BAZ"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.capabilities.drop", BadValue: []string{"BAR", "FOO"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.capabilities.add", BadValue: []string{"CHOWN"}},
+			},
 		},
 		{
 			name: "windows pod, admit without checking capabilities",
@@ -49,6 +77,21 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 				Containers: []corev1.Container{
 					{Name: "a"},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
+			allowed: true,
+		},
+		{
+			name: "windows pod, admit without checking capabilities, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				OS: &corev1.PodOS{Name: corev1.Windows},
+				Containers: []corev1.Container{
+					{Name: "a"},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
 			allowed: true,
 		},
 		{
@@ -58,11 +101,33 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 				Containers: []corev1.Container{
 					{Name: "a"},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `container "a" must set securityContext.capabilities.drop=["ALL"]`,
 			allowed:      false,
 		},
+		{
+			name: "linux pod, reject if security context is not set, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				OS: &corev1.PodOS{Name: corev1.Linux},
+				Containers: []corev1.Container{
+					{Name: "a"},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `unrestricted capabilities`,
+			expectDetail: `container "a" must set securityContext.capabilities.drop=["ALL"]`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.capabilities.drop", BadValue: ""},
+			},
+			allowed: false,
+		},
 	}
+
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := capabilitiesRestricted_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -75,30 +140,60 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
 			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
+			}
 		})
 	}
 }
 
 func TestCapabilitiesRestricted_1_22(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "multiple containers",
 			pod: &corev1.Pod{Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
 					{Name: "a", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"FOO", "BAR"}}}},
-					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}, Drop: []corev1.Capability{"FOO", "BAR"}}}},
 					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
 		},
+		{
+			name: "multiple containers enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"FOO", "BAR"}}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}, Drop: []corev1.Capability{"FOO", "BAR"}}}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `unrestricted capabilities`,
+			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[0].securityContext.capabilities.add", BadValue: []string{"BAR", "FOO"}},
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.capabilities.drop", BadValue: ""},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.capabilities.add", BadValue: []string{"BAR", "BAZ"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.capabilities.drop", BadValue: []string{"BAR", "FOO"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.capabilities.add", BadValue: []string{"CHOWN"}},
+			},
+		},
 	}
+
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := capabilitiesRestricted_1_22(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -110,6 +205,9 @@ func TestCapabilitiesRestricted_1_22(t *testing.T) {
 			}
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
+			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
 			}
 		})
 	}

@@ -17,6 +17,9 @@ limitations under the License.
 package policy
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,11 +28,12 @@ import (
 
 func TestPrivileged(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "privileged",
@@ -42,11 +46,36 @@ func TestPrivileged(t *testing.T) {
 					{Name: "e", SecurityContext: &corev1.SecurityContext{Privileged: utilpointer.Bool(true)}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `privileged`,
 			expectDetail: `containers "d", "e" must not set securityContext.privileged=true`,
 		},
+		{
+			name: "privileged, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{Privileged: utilpointer.Bool(false)}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{Privileged: utilpointer.Bool(true)}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{Privileged: utilpointer.Bool(true)}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `privileged`,
+			expectDetail: `containers "d", "e" must not set securityContext.privileged=true`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.privileged", BadValue: []string{"true"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.privileged", BadValue: []string{"true"}},
+			},
+		},
 	}
 
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := privileged_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -58,6 +87,9 @@ func TestPrivileged(t *testing.T) {
 			}
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
+			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
 			}
 		})
 	}

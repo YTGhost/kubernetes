@@ -77,7 +77,7 @@ func CheckCapabilitiesRestricted() Check {
 }
 
 func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var forbiddenCapabilities = sets.NewString()
+	forbiddenCapabilities := sets.NewString()
 	var containersMissingDropAll violations[string]
 	var containersAddingForbidden violations[string]
 
@@ -95,22 +95,30 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			}
 		}
 		if !droppedAll {
-			strSlice := make([]string, len(container.SecurityContext.Capabilities.Drop))
-			for i, v := range container.SecurityContext.Capabilities.Drop {
-				strSlice[i] = string(v)
+			length := len(container.SecurityContext.Capabilities.Drop)
+			if length > 0 {
+				strSlice := make([]string, len(container.SecurityContext.Capabilities.Drop))
+				for i, v := range container.SecurityContext.Capabilities.Drop {
+					strSlice[i] = string(v)
+				}
+				forbiddenValues := sets.NewString(strSlice...)
+				containersMissingDropAll.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("drop"), forbiddenValues.List()))
+			} else if length == 0 {
+				containersMissingDropAll.Add(container.Name, opts, required(pathFn.child("securityContext").child("capabilities").child("drop")))
 			}
-			containersMissingDropAll.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("drop"), strSlice))
 		}
 
 		addedForbidden := false
+		forbiddenValues := sets.NewString()
 		for _, c := range container.SecurityContext.Capabilities.Add {
 			if c != capabilityNetBindService {
 				addedForbidden = true
 				forbiddenCapabilities.Insert(string(c))
+				forbiddenValues.Insert(string(c))
 			}
 		}
 		if addedForbidden {
-			containersAddingForbidden.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenCapabilities.List()))
+			containersAddingForbidden.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValues.List()))
 		}
 	})
 

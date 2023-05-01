@@ -29,6 +29,10 @@ type violations[T any] struct {
 
 func (v *violations[T]) Add(data T, opts options, errFns ...ErrFn) {
 	v.data = append(v.data, data)
+	v.AddErrs(opts, errFns...)
+}
+
+func (v *violations[T]) AddErrs(opts options, errFns ...ErrFn) {
 	opts.errListHandler(func() {
 		for _, errFn := range errFns {
 			if errFn != nil {

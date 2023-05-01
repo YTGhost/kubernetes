@@ -17,6 +17,9 @@ limitations under the License.
 package policy
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,12 +28,13 @@ import (
 
 func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
-		allowed      bool
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
+		allowed       bool
 	}{
 		{
 			name: "multiple containers",
@@ -41,9 +45,33 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "c", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(true)}},
 					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
 			allowed:      false,
+		},
+		{
+			name: "multiple containers, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a"},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: nil}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(true)}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `allowPrivilegeEscalation != false`,
+			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.allowPrivilegeEscalation", BadValue: ""},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.allowPrivilegeEscalation", BadValue: []string{"nil"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.allowPrivilegeEscalation", BadValue: []string{"true"}},
+			},
+			allowed: false,
 		},
 		{
 			name: "windows pod, admit without checking privilegeEscalation",
@@ -52,6 +80,21 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 				Containers: []corev1.Container{
 					{Name: "a"},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
+			allowed: true,
+		},
+		{
+			name: "windows pod, admit without checking privilegeEscalation, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				OS: &corev1.PodOS{Name: corev1.Windows},
+				Containers: []corev1.Container{
+					{Name: "a"},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
 			allowed: true,
 		},
 		{
@@ -61,12 +104,33 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 				Containers: []corev1.Container{
 					{Name: "a"},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `container "a" must set securityContext.allowPrivilegeEscalation=false`,
 			allowed:      false,
 		},
+		{
+			name: "linux pod, reject if security context is not set, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				OS: &corev1.PodOS{Name: corev1.Linux},
+				Containers: []corev1.Container{
+					{Name: "a"},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `allowPrivilegeEscalation != false`,
+			expectDetail: `container "a" must set securityContext.allowPrivilegeEscalation=false`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.allowPrivilegeEscalation", BadValue: ""},
+			},
+			allowed: false,
+		},
 	}
 
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := allowPrivilegeEscalation_1_25(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -79,17 +143,21 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
 			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
+			}
 		})
 	}
 }
 
 func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "multiple containers",
@@ -100,11 +168,35 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 					{Name: "c", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(true)}},
 					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
 				}}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
 		},
+		{
+			name: "multiple containers enable field error List",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a"},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: nil}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(true)}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
+				}}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `allowPrivilegeEscalation != false`,
+			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.allowPrivilegeEscalation", BadValue: ""},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.allowPrivilegeEscalation", BadValue: []string{"nil"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.allowPrivilegeEscalation", BadValue: []string{"true"}},
+			},
+		},
 	}
 
+	ignoreDetail := cmpopts.IgnoreFields(field.Error{}, "Detail")
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := allowPrivilegeEscalation_1_8(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -116,6 +208,9 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 			}
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
+			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, ignoreDetail); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
 			}
 		})
 	}

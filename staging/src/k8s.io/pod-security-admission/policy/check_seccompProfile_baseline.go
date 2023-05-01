@@ -92,7 +92,9 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 	if val, ok := podMetadata.Annotations[annotationKeyPod]; ok {
 		if !validSeccompAnnotationValue(val) {
 			forbiddenValues.Insert(fmt.Sprintf("%s=%q", annotationKeyPod, val))
-			errFns = append(errFns, forbidden(annotationsPath.key(annotationKeyPod), []string{val}))
+			errFns = append(errFns, forbidden(annotationsPath.key(annotationKeyPod), []string{
+				val,
+			}))
 		}
 	}
 

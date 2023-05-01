@@ -17,6 +17,9 @@ limitations under the License.
 package policy
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,11 +28,12 @@ import (
 
 func TestRunAsNonRoot(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "no explicit runAsNonRoot",
@@ -38,8 +42,27 @@ func TestRunAsNonRoot(t *testing.T) {
 					{Name: "a"},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or container "a" must set securityContext.runAsNonRoot=true`,
+		},
+		{
+			name: "no explicit runAsNonRoot, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a"},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `runAsNonRoot != true`,
+			expectDetail: `pod or container "a" must set securityContext.runAsNonRoot=true`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
+			},
 		},
 		{
 			name: "pod runAsNonRoot=false",
@@ -49,8 +72,28 @@ func TestRunAsNonRoot(t *testing.T) {
 					{Name: "a", SecurityContext: nil},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod must not set securityContext.runAsNonRoot=false`,
+		},
+		{
+			name: "pod runAsNonRoot=false, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{RunAsNonRoot: utilpointer.Bool(false)},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `runAsNonRoot != true`,
+			expectDetail: `pod must not set securityContext.runAsNonRoot=false`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.runAsNonRoot", BadValue: []string{"false"}},
+			},
 		},
 		{
 			name: "containers runAsNonRoot=false",
@@ -65,8 +108,34 @@ func TestRunAsNonRoot(t *testing.T) {
 					{Name: "f", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(true)}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `containers "c", "d" must not set securityContext.runAsNonRoot=false`,
+		},
+		{
+			name: "containers runAsNonRoot=false, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{RunAsNonRoot: utilpointer.Bool(true)},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(false)}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(false)}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(true)}},
+					{Name: "f", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(true)}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `runAsNonRoot != true`,
+			expectDetail: `containers "c", "d" must not set securityContext.runAsNonRoot=false`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.runAsNonRoot", BadValue: []string{"false"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.runAsNonRoot", BadValue: []string{"false"}},
+			},
 		},
 		{
 			name: "pod nil, container fallthrough",
@@ -78,11 +147,35 @@ func TestRunAsNonRoot(t *testing.T) {
 					{Name: "e", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(true)}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.runAsNonRoot=true`,
 		},
+		{
+			name: "pod nil, container fallthrough, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(true)}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{RunAsNonRoot: utilpointer.Bool(true)}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `runAsNonRoot != true`,
+			expectDetail: `pod or containers "a", "b" must set securityContext.runAsNonRoot=true`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
+				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
+			},
+		},
 	}
 
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := runAsNonRoot_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -94,6 +187,9 @@ func TestRunAsNonRoot(t *testing.T) {
 			}
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
+			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
 			}
 		})
 	}

@@ -17,6 +17,9 @@ limitations under the License.
 package policy
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,11 +28,12 @@ import (
 
 func TestSeccompProfileBaseline_1_0(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "pod seccomp invalid",
@@ -40,8 +44,29 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 					},
 				},
 			},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotation seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
+		},
+		{
+			name: "pod seccomp invalid, enable field error list",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"seccomp.security.alpha.kubernetes.io/pod": "unconfined",
+					},
+				},
+			},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seccompProfile`,
+			expectDetail: `forbidden annotation seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[seccomp.security.alpha.kubernetes.io/pod]", BadValue: []string{"unconfined"}},
+			},
 		},
 		{
 			name: "containers seccomp invalid",
@@ -56,8 +81,34 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 					Containers: []corev1.Container{{Name: "a"}, {Name: "b"}, {Name: "c"}},
 				},
 			},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown"`,
+		},
+		{
+			name: "containers seccomp invalid, enable field error list",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"container.seccomp.security.alpha.kubernetes.io/a": "unconfined",
+						"container.seccomp.security.alpha.kubernetes.io/b": "unknown",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{Name: "a"}, {Name: "b"}, {Name: "c"}},
+				},
+			},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seccompProfile`,
+			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/a]", BadValue: []string{"unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/b]", BadValue: []string{"unknown"}},
+			},
 		},
 		{
 			name: "pod and containers seccomp invalid",
@@ -73,11 +124,40 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 					Containers: []corev1.Container{{Name: "a"}, {Name: "b"}, {Name: "c"}},
 				},
 			},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown", seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
 		},
+		{
+			name: "pod and containers seccomp invalid, enable field error list",
+			pod: &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"seccomp.security.alpha.kubernetes.io/pod":         "unconfined",
+						"container.seccomp.security.alpha.kubernetes.io/a": "unconfined",
+						"container.seccomp.security.alpha.kubernetes.io/b": "unknown",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{Name: "a"}, {Name: "b"}, {Name: "c"}},
+				},
+			},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seccompProfile`,
+			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown", seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[seccomp.security.alpha.kubernetes.io/pod]", BadValue: []string{"unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/a]", BadValue: []string{"unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/b]", BadValue: []string{"unknown"}},
+			},
+		},
 	}
 
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := seccompProfileBaseline_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -90,17 +170,21 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
 			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
+			}
 		})
 	}
 }
 
 func TestSeccompProfileBaseline_1_19(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "pod seccomp invalid",
@@ -110,8 +194,28 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 					{Name: "a", SecurityContext: nil},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
+		},
+		{
+			name: "pod seccomp invalid, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seccompProfile`,
+			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+			},
 		},
 		{
 			name: "containers seccomp invalid",
@@ -126,8 +230,34 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 					{Name: "f", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
+		},
+		{
+			name: "containers seccomp invalid, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}}},
+					{Name: "f", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seccompProfile`,
+			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+			},
 		},
 		{
 			name: "pod and containers seccomp invalid",
@@ -142,11 +272,39 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 					{Name: "f", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod and containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
 		},
+		{
+			name: "pod and containers seccomp invalid, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: nil},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeUnconfined}}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}}},
+					{Name: "f", SecurityContext: &corev1.SecurityContext{SeccompProfile: &corev1.SeccompProfile{Type: corev1.SeccompProfileTypeRuntimeDefault}}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seccompProfile`,
+			expectDetail: `pod and containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+			},
+		},
 	}
 
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := seccompProfileBaseline_1_19(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -158,6 +316,9 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 			}
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
+			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
 			}
 		})
 	}

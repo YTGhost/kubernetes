@@ -94,6 +94,7 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 				joinQuote(badContainers.Data()),
 			),
 			opts,
+			errFns...,
 		)
 	}
 	if !forbiddenSetters.Empty() {

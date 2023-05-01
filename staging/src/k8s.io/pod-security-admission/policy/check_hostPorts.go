@@ -62,18 +62,18 @@ func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 	forbiddenHostPorts := sets.NewString()
 	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
 		valid := true
-		var errs []ErrFn
+		var errFns []ErrFn
 		for i, c := range container.Ports {
 			if c.HostPort != 0 {
 				valid = false
 				forbiddenHostPorts.Insert(strconv.Itoa(int(c.HostPort)))
-				errs = append(errs, forbidden(pathFn.child("ports").index(i).child("hostPort"), []string{
+				errFns = append(errFns, forbidden(pathFn.child("ports").index(i).child("hostPort"), []string{
 					strconv.Itoa(int(c.HostPort)),
 				}))
 			}
 		}
 		if !valid {
-			badContainers.Add(container.Name, opts, errs...)
+			badContainers.Add(container.Name, opts, errFns...)
 		}
 	})
 

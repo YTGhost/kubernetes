@@ -17,6 +17,9 @@ limitations under the License.
 package policy
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -24,11 +27,12 @@ import (
 
 func TestSELinuxOptions(t *testing.T) {
 	tests := []struct {
-		name         string
-		pod          *corev1.Pod
-		opts         options
-		expectReason string
-		expectDetail string
+		name          string
+		pod           *corev1.Pod
+		opts          options
+		expectReason  string
+		expectDetail  string
+		expectErrList field.ErrorList
 	}{
 		{
 			name: "invalid pod and containers",
@@ -61,8 +65,56 @@ func TestSELinuxOptions(t *testing.T) {
 					}}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod and containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: types "bar", "foo"; user may not be set; role may not be set`,
+		},
+		{
+			name: "invalid pod and containers, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{
+					SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "foo",
+						User: "bar",
+						Role: "baz",
+					},
+				},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_t",
+					}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_init_t",
+					}}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_kvm_t",
+					}}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "bar",
+					}}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						User: "bar",
+					}}},
+					{Name: "f", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Role: "baz",
+					}}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seLinuxOptions`,
+			expectDetail: `pod and containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: types "bar", "foo"; user may not be set; role may not be set`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: []string{"foo"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seLinuxOptions.type", BadValue: []string{"bar"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+			},
 		},
 		{
 			name: "invalid pod",
@@ -86,8 +138,44 @@ func TestSELinuxOptions(t *testing.T) {
 					}}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "foo"; user may not be set; role may not be set`,
+		},
+		{
+			name: "invalid pod, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{
+					SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "foo",
+						User: "bar",
+						Role: "baz",
+					},
+				},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_t",
+					}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_init_t",
+					}}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_kvm_t",
+					}}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seLinuxOptions`,
+			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "foo"; user may not be set; role may not be set`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: []string{"foo"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+			},
 		},
 		{
 			name: "invalid containers",
@@ -116,8 +204,49 @@ func TestSELinuxOptions(t *testing.T) {
 					}}},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: type "bar"; user may not be set; role may not be set`,
+		},
+		{
+			name: "invalid containers, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{
+					SELinuxOptions: &corev1.SELinuxOptions{},
+				},
+				Containers: []corev1.Container{
+					{Name: "a", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_t",
+					}}},
+					{Name: "b", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_init_t",
+					}}},
+					{Name: "c", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "container_kvm_t",
+					}}},
+					{Name: "d", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "bar",
+					}}},
+					{Name: "e", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						User: "bar",
+					}}},
+					{Name: "f", SecurityContext: &corev1.SecurityContext{SELinuxOptions: &corev1.SELinuxOptions{
+						Role: "baz",
+					}}},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seLinuxOptions`,
+			expectDetail: `containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: type "bar"; user may not be set; role may not be set`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seLinuxOptions.type", BadValue: []string{"bar"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+			},
 		},
 		{
 			name: "bad type",
@@ -128,8 +257,29 @@ func TestSELinuxOptions(t *testing.T) {
 					},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "bad"`,
+		},
+		{
+			name: "bad type, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{
+					SELinuxOptions: &corev1.SELinuxOptions{
+						Type: "bad",
+					},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seLinuxOptions`,
+			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "bad"`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: []string{"bad"}},
+			},
 		},
 		{
 			name: "bad user",
@@ -140,8 +290,29 @@ func TestSELinuxOptions(t *testing.T) {
 					},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: user may not be set`,
+		},
+		{
+			name: "bad user, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{
+					SELinuxOptions: &corev1.SELinuxOptions{
+						User: "bad",
+					},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seLinuxOptions`,
+			expectDetail: `pod set forbidden securityContext.seLinuxOptions: user may not be set`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: []string{"bad"}},
+			},
 		},
 		{
 			name: "bad role",
@@ -152,11 +323,33 @@ func TestSELinuxOptions(t *testing.T) {
 					},
 				},
 			}},
+			opts: options{
+				withErrList: false,
+			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: role may not be set`,
 		},
+		{
+			name: "bad role, enable field error list",
+			pod: &corev1.Pod{Spec: corev1.PodSpec{
+				SecurityContext: &corev1.PodSecurityContext{
+					SELinuxOptions: &corev1.SELinuxOptions{
+						Role: "bad",
+					},
+				},
+			}},
+			opts: options{
+				withErrList: true,
+			},
+			expectReason: `seLinuxOptions`,
+			expectDetail: `pod set forbidden securityContext.seLinuxOptions: role may not be set`,
+			expectErrList: field.ErrorList{
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: []string{"bad"}},
+			},
+		},
 	}
 
+	cmpOpts := []cmp.Option{cmpopts.IgnoreFields(field.Error{}, "Detail"), cmpopts.SortSlices(func(a, b *field.Error) bool { return a.Error() < b.Error() })}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			result := seLinuxOptions_1_0(&tc.pod.ObjectMeta, &tc.pod.Spec, tc.opts)
@@ -168,6 +361,9 @@ func TestSELinuxOptions(t *testing.T) {
 			}
 			if e, a := tc.expectDetail, result.ForbiddenDetail; e != a {
 				t.Errorf("expected\n%s\ngot\n%s", e, a)
+			}
+			if diff := cmp.Diff(tc.expectErrList, result.ErrList, cmpOpts...); diff != "" {
+				t.Errorf("unexpected field errors (-want,+got):\n%s", diff)
 			}
 		})
 	}

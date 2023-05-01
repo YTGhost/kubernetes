@@ -33,6 +33,8 @@ var (
 	runAsUserPath              = securityContextPath.child("runAsUser")
 	seccompProfileTypePath     = securityContextPath.child("seccompProfile").child("type")
 	seLinuxOptionsTypePath     = securityContextPath.child("seLinuxOptions").child("type")
+	seLinuxOptionsUserPath     = securityContextPath.child("seLinuxOptions").child("user")
+	seLinuxOptionsRolePath     = securityContextPath.child("seLinuxOptions").child("role")
 	sysctlsPath                = securityContextPath.child("sysctls")
 	hostProcessPath            = securityContextPath.child("windowsOptions").child("hostProcess")
 )
