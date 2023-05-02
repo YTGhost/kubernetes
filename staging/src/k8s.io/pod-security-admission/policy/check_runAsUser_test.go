@@ -45,7 +45,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `runAsUser=0`,
 			expectDetail: `pod must not set runAsUser=0`,
@@ -59,7 +59,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `runAsUser=0`,
 			expectDetail: `pod must not set runAsUser=0`,
@@ -76,7 +76,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectAllow: true,
 		},
@@ -89,7 +89,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectAllow: true,
 		},
@@ -102,7 +102,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectAllow: true,
 		},
@@ -115,7 +115,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectAllow: true,
 		},
@@ -133,7 +133,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `runAsUser=0`,
 			expectDetail: `containers "c", "d" must not set runAsUser=0`,
@@ -152,7 +152,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `runAsUser=0`,
 			expectDetail: `containers "c", "d" must not set runAsUser=0`,
@@ -172,7 +172,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectAllow: true,
 		},
@@ -187,7 +187,7 @@ func TestRunAsUser(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectAllow: true,
 		},

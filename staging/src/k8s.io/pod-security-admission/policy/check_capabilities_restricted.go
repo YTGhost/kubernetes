@@ -81,9 +81,9 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 	var containersMissingDropAll violations[string]
 	var containersAddingForbidden violations[string]
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {
-			containersMissingDropAll.Add(container.Name, opts, required(pathFn.child("securityContext").child("capabilities").child("drop")))
+			containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext").child("capabilities").child("drop")))
 			return
 		}
 
@@ -102,9 +102,9 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 					strSlice[i] = string(v)
 				}
 				forbiddenValues := sets.NewString(strSlice...)
-				containersMissingDropAll.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("drop"), forbiddenValues.List()))
+				containersMissingDropAll.Add(container.Name, forbidden(pathFn.child("securityContext").child("capabilities").child("drop"), forbiddenValues.List()))
 			} else if length == 0 {
-				containersMissingDropAll.Add(container.Name, opts, required(pathFn.child("securityContext").child("capabilities").child("drop")))
+				containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext").child("capabilities").child("drop")))
 			}
 		}
 
@@ -118,7 +118,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			}
 		}
 		if addedForbidden {
-			containersAddingForbidden.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValues.List()))
+			containersAddingForbidden.Add(container.Name, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValues.List()))
 		}
 	})
 

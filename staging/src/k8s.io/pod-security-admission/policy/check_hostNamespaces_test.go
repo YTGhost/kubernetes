@@ -42,7 +42,7 @@ func TestHostNamespaces(t *testing.T) {
 				HostPID:     true,
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `host namespaces`,
 			expectDetail: `hostNetwork=true, hostPID=true, hostIPC=true`,
@@ -55,7 +55,7 @@ func TestHostNamespaces(t *testing.T) {
 				HostPID:     true,
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `host namespaces`,
 			expectDetail: `hostNetwork=true, hostPID=true, hostIPC=true`,

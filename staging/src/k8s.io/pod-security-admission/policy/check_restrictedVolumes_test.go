@@ -76,7 +76,7 @@ func TestRestrictedVolumes(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `restricted volume types`,
 			expectDetail: `volumes ` +
@@ -127,7 +127,7 @@ func TestRestrictedVolumes(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `restricted volume types`,
 			expectDetail: `volumes ` +

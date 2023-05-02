@@ -20,19 +20,31 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// ContainerVisitorWithPath is called with each container and the field.Path to that container.
-type ContainerVisitorWithPath func(container *corev1.Container, pathFn PathFn)
+// ContainerVisitor is called with each container and the pathFn to that container.
+type ContainerVisitor func(container *corev1.Container, pathFn PathFn)
 
-// visitContainersWithPath invokes the visitor function with a pointer to the spec
-// of every container in the given pod spec and the field.Path to that container.
-func visitContainersWithPath(podSpec *corev1.PodSpec, visitor ContainerVisitorWithPath) {
+// visitContainers invokes the visitor function with a pointer to the spec
+// of every container in the given pod spec.
+func visitContainers(podSpec *corev1.PodSpec, opts options, visitor ContainerVisitor) {
 	for i := range podSpec.InitContainers {
-		visitor(&podSpec.InitContainers[i], initContainersFldPath.index(i))
+		if opts.withFieldErrors {
+			visitor(&podSpec.InitContainers[i], initContainersFldPath.index(i))
+		} else {
+			visitor(&podSpec.InitContainers[i], nil)
+		}
 	}
 	for i := range podSpec.Containers {
-		visitor(&podSpec.Containers[i], containersFldPath.index(i))
+		if opts.withFieldErrors {
+			visitor(&podSpec.Containers[i], containersFldPath.index(i))
+		} else {
+			visitor(&podSpec.Containers[i], nil)
+		}
 	}
 	for i := range podSpec.EphemeralContainers {
-		visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), ephemeralContainersFldPath.index(i))
+		if opts.withFieldErrors {
+			visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), ephemeralContainersFldPath.index(i))
+		} else {
+			visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), nil)
+		}
 	}
 }

@@ -43,7 +43,7 @@ func TestSysctls(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed:      false,
 			expectReason: `forbidden sysctls`,
@@ -57,7 +57,7 @@ func TestSysctls(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed:      false,
 			expectReason: `forbidden sysctls`,
@@ -75,7 +75,7 @@ func TestSysctls(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed:      false,
 			expectReason: `forbidden sysctls`,
@@ -89,7 +89,7 @@ func TestSysctls(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed:      false,
 			expectReason: `forbidden sysctls`,
@@ -144,7 +144,7 @@ func TestSysctls_1_27(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed:      false,
 			expectReason: `forbidden sysctls`,
@@ -158,7 +158,7 @@ func TestSysctls_1_27(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed:      false,
 			expectReason: `forbidden sysctls`,
@@ -176,7 +176,7 @@ func TestSysctls_1_27(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed: true,
 		},
@@ -188,7 +188,7 @@ func TestSysctls_1_27(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed: true,
 		},

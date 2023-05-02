@@ -92,25 +92,33 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 	if val, ok := podMetadata.Annotations[annotationKeyPod]; ok {
 		if !validSeccompAnnotationValue(val) {
 			forbiddenValues.Insert(fmt.Sprintf("%s=%q", annotationKeyPod, val))
-			errFns = append(errFns, forbidden(annotationsPath.key(annotationKeyPod), []string{
-				val,
-			}))
+			var errFn ErrFn
+			if opts.withFieldErrors {
+				errFn = forbidden(annotationsPath.key(annotationKeyPod), []string{
+					val,
+				})
+			}
+			errFns = append(errFns, errFn)
 		}
 	}
 
-	visitContainersWithPath(podSpec, func(c *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
 		annotation := annotationKeyContainerPrefix + c.Name
 		if val, ok := podMetadata.Annotations[annotation]; ok {
 			if !validSeccompAnnotationValue(val) {
 				forbiddenValues.Insert(fmt.Sprintf("%s=%q", annotation, val))
-				errFns = append(errFns, forbidden(annotationsPath.key(annotation), []string{
-					val,
-				}))
+				var errFn ErrFn
+				if opts.withFieldErrors {
+					errFn = forbidden(annotationsPath.key(annotation), []string{
+						val,
+					})
+				}
+				errFns = append(errFns, errFn)
 			}
 		}
 	})
 
-	badSetters.Add("", opts, errFns...)
+	badSetters.AddErrs(errFns...)
 	if len(forbiddenValues) > 0 {
 		return CheckResult{
 			Allowed:         false,
@@ -135,9 +143,13 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SeccompProfile != nil {
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
-			badSetters.Add("pod", opts, forbidden(seccompProfileTypePath, []string{
-				string(podSpec.SecurityContext.SeccompProfile.Type),
-			}))
+			var errFn ErrFn
+			if opts.withFieldErrors {
+				errFn = forbidden(seccompProfileTypePath, []string{
+					string(podSpec.SecurityContext.SeccompProfile.Type),
+				})
+			}
+			badSetters.Add("pod", errFn)
 			badValues.Insert(string(podSpec.SecurityContext.SeccompProfile.Type))
 		}
 	}
@@ -146,12 +158,12 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 	var explicitlyBadContainers violations[string]
 	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(c *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
 		if c.SecurityContext != nil && c.SecurityContext.SeccompProfile != nil {
 			// container explicitly set seccompProfile
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
-				explicitlyBadContainers.Add(c.Name, opts)
+				explicitlyBadContainers.Add(c.Name)
 				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("seccompProfile").child("type"), []string{
 					string(c.SecurityContext.SeccompProfile.Type),
 				}))
@@ -167,7 +179,6 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 				pluralize("container", "containers", explicitlyBadContainers.Len()),
 				joinQuote(explicitlyBadContainers.Data()),
 			),
-			opts,
 			explicitlyErrFns...,
 		)
 	}

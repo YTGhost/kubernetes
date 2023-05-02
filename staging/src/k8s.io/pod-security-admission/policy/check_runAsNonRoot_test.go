@@ -43,7 +43,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or container "a" must set securityContext.runAsNonRoot=true`,
@@ -56,7 +56,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or container "a" must set securityContext.runAsNonRoot=true`,
@@ -73,7 +73,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod must not set securityContext.runAsNonRoot=false`,
@@ -87,7 +87,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod must not set securityContext.runAsNonRoot=false`,
@@ -109,7 +109,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `containers "c", "d" must not set securityContext.runAsNonRoot=false`,
@@ -128,7 +128,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `containers "c", "d" must not set securityContext.runAsNonRoot=false`,
@@ -148,7 +148,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.runAsNonRoot=true`,
@@ -164,7 +164,7 @@ func TestRunAsNonRoot(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.runAsNonRoot=true`,

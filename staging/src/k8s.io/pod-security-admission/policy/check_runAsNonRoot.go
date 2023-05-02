@@ -65,9 +65,11 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 	podRunAsNonRoot := false
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsNonRoot != nil {
 		if !*podSpec.SecurityContext.RunAsNonRoot {
-			badSetters.Add("pod", opts, forbidden(runAsNonRootPath, []string{
-				"false",
-			}))
+			var errFn ErrFn
+			if opts.withFieldErrors {
+				errFn = forbidden(runAsNonRootPath, []string{"false"})
+			}
+			badSetters.Add("pod", errFn)
 		} else {
 			podRunAsNonRoot = true
 		}
@@ -79,11 +81,11 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 	var implicitlyBadContainers violations[string]
 	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.RunAsNonRoot != nil {
 			// container explicitly set runAsNonRoot
 			if !*container.SecurityContext.RunAsNonRoot {
-				explicitlyBadContainers.Add(container.Name, opts)
+				explicitlyBadContainers.Add(container.Name)
 				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("runAsNonRoot"), []string{
 					"false",
 				}))
@@ -92,7 +94,11 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 			// container did not explicitly set runAsNonRoot
 			if !podRunAsNonRoot {
 				// no pod-level runAsNonRoot=true, so this container implicitly has a bad value
-				implicitlyBadContainers.Add(container.Name, opts, required(runAsNonRootPath))
+				var errFn ErrFn
+				if opts.withFieldErrors {
+					errFn = required(runAsNonRootPath)
+				}
+				implicitlyBadContainers.Add(container.Name, errFn)
 			}
 		}
 	})
@@ -104,7 +110,6 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 				pluralize("container", "containers", explicitlyBadContainers.Len()),
 				joinQuote(explicitlyBadContainers.Data()),
 			),
-			opts,
 			explicitlyErrFns...,
 		)
 	}

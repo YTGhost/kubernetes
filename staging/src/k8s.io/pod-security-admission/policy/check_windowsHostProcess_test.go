@@ -51,7 +51,7 @@ func TestWindowsHostProcess(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `hostProcess`,
 			expectDetail: `pod and containers "e", "f" must not set securityContext.windowsOptions.hostProcess=true`,
@@ -72,7 +72,7 @@ func TestWindowsHostProcess(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `hostProcess`,
 			expectDetail: `pod and containers "e", "f" must not set securityContext.windowsOptions.hostProcess=true`,

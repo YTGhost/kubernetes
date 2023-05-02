@@ -43,7 +43,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or container "a" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -56,7 +56,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or container "a" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -73,7 +73,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed: true,
 		},
@@ -86,7 +86,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed: true,
 		},
@@ -99,7 +99,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or container "a" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -114,7 +114,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or container "a" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -132,7 +132,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -146,7 +146,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -168,7 +168,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -187,7 +187,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -207,7 +207,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -223,7 +223,7 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -271,7 +271,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or container "a" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -284,7 +284,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or container "a" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -301,7 +301,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -315,7 +315,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -337,7 +337,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -356,7 +356,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -376,7 +376,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
@@ -392,7 +392,7 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,

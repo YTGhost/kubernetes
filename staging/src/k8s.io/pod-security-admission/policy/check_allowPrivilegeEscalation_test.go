@@ -46,7 +46,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
@@ -62,7 +62,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
@@ -81,7 +81,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed: true,
 		},
@@ -93,7 +93,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed: true,
 		},
@@ -105,7 +105,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `container "a" must set securityContext.allowPrivilegeEscalation=false`,
@@ -119,7 +119,7 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `container "a" must set securityContext.allowPrivilegeEscalation=false`,
@@ -169,7 +169,7 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
@@ -184,7 +184,7 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 					{Name: "d", SecurityContext: &corev1.SecurityContext{AllowPrivilegeEscalation: utilpointer.Bool(false)}},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `allowPrivilegeEscalation != false`,
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,

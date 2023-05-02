@@ -50,7 +50,7 @@ func TestProcMount(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `procMount`,
 			expectDetail: `containers "d", "e" must not set securityContext.procMount to "Unmasked", "other"`,
@@ -67,7 +67,7 @@ func TestProcMount(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `procMount`,
 			expectDetail: `containers "d", "e" must not set securityContext.procMount to "Unmasked", "other"`,

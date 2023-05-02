@@ -60,7 +60,7 @@ func CheckHostPorts() Check {
 func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var badContainers violations[string]
 	forbiddenHostPorts := sets.NewString()
-	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		valid := true
 		var errFns []ErrFn
 		for i, c := range container.Ports {
@@ -73,7 +73,7 @@ func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 			}
 		}
 		if !valid {
-			badContainers.Add(container.Name, opts, errFns...)
+			badContainers.Add(container.Name, errFns...)
 		}
 	})
 

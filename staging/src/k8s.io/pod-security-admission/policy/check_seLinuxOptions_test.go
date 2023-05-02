@@ -66,7 +66,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod and containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: types "bar", "foo"; user may not be set; role may not be set`,
@@ -103,7 +103,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod and containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: types "bar", "foo"; user may not be set; role may not be set`,
@@ -139,7 +139,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "foo"; user may not be set; role may not be set`,
@@ -167,7 +167,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "foo"; user may not be set; role may not be set`,
@@ -205,7 +205,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: type "bar"; user may not be set; role may not be set`,
@@ -238,7 +238,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: type "bar"; user may not be set; role may not be set`,
@@ -258,7 +258,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "bad"`,
@@ -273,7 +273,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "bad"`,
@@ -291,7 +291,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: user may not be set`,
@@ -306,7 +306,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: user may not be set`,
@@ -324,7 +324,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: role may not be set`,
@@ -339,7 +339,7 @@ func TestSELinuxOptions(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: role may not be set`,

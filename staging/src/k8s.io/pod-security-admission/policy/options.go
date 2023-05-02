@@ -19,11 +19,10 @@ package policy
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 type options struct {
-	withErrList bool
+	withFieldErrors bool
 }
 
 type Option func(*options)
@@ -40,18 +39,8 @@ func withOptions(f func(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 	}
 }
 
-type ErrListHandler func(errList *field.ErrorList, error *field.Error)
-
-func (o options) errListHandler(f func()) {
-	if o.withErrList {
-		if f != nil {
-			f()
-		}
-	}
-}
-
-func WithErrList() Option {
+func withFieldErrors() Option {
 	return func(opt *options) {
-		opt.withErrList = true
+		opt.withFieldErrors = true
 	}
 }

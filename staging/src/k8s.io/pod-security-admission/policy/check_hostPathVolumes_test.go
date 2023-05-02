@@ -44,7 +44,7 @@ func TestHostPathVolumes(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `hostPath volumes`,
 			expectDetail: `volumes "a", "b"`,
@@ -59,7 +59,7 @@ func TestHostPathVolumes(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `hostPath volumes`,
 			expectDetail: `volumes "a", "b"`,

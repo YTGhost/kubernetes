@@ -45,7 +45,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotation seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
@@ -60,7 +60,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotation seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
@@ -82,7 +82,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown"`,
@@ -101,7 +101,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown"`,
@@ -125,7 +125,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown", seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
@@ -145,7 +145,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown", seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
@@ -195,7 +195,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -209,7 +209,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -231,7 +231,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -250,7 +250,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -273,7 +273,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod and containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
@@ -292,7 +292,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `seccompProfile`,
 			expectDetail: `pod and containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,

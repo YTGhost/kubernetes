@@ -42,7 +42,7 @@ func TestCapabilitiesBaseline(t *testing.T) {
 					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}}}},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `non-default capabilities`,
 			expectDetail: `containers "a", "b" must not include "BAR", "BAZ", "FOO" in securityContext.capabilities.add`,
@@ -55,7 +55,7 @@ func TestCapabilitiesBaseline(t *testing.T) {
 					{Name: "b", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"BAR", "BAZ"}}}},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `non-default capabilities`,
 			expectDetail: `containers "a", "b" must not include "BAR", "BAZ", "FOO" in securityContext.capabilities.add`,

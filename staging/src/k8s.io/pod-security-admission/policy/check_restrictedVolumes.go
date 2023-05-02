@@ -100,75 +100,78 @@ func restrictedVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSp
 			continue
 
 		default:
-			volumesIndexPath := volumesPath.index(i)
+			var volumesIndexPath PathFn
+			if opts.withFieldErrors {
+				volumesIndexPath = volumesPath.index(i)
+			}
 
 			switch {
 			case volume.HostPath != nil:
 				badVolumeTypes.Insert("hostPath")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("hostPath"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("hostPath"), []string{}))
 			case volume.GCEPersistentDisk != nil:
 				badVolumeTypes.Insert("gcePersistentDisk")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("gcePersistentDisk"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("gcePersistentDisk"), []string{}))
 			case volume.AWSElasticBlockStore != nil:
 				badVolumeTypes.Insert("awsElasticBlockStore")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("awsElasticBlockStore"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("awsElasticBlockStore"), []string{}))
 			case volume.GitRepo != nil:
 				badVolumeTypes.Insert("gitRepo")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("gitRepo"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("gitRepo"), []string{}))
 			case volume.NFS != nil:
 				badVolumeTypes.Insert("nfs")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("nfs"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("nfs"), []string{}))
 			case volume.ISCSI != nil:
 				badVolumeTypes.Insert("iscsi")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("iscsi"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("iscsi"), []string{}))
 			case volume.Glusterfs != nil:
 				badVolumeTypes.Insert("glusterfs")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("glusterfs"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("glusterfs"), []string{}))
 			case volume.RBD != nil:
 				badVolumeTypes.Insert("rbd")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("rbd"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("rbd"), []string{}))
 			case volume.FlexVolume != nil:
 				badVolumeTypes.Insert("flexVolume")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("flexVolume"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("flexVolume"), []string{}))
 			case volume.Cinder != nil:
 				badVolumeTypes.Insert("cinder")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("cinder"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("cinder"), []string{}))
 			case volume.CephFS != nil:
 				badVolumeTypes.Insert("cephfs")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("cephfs"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("cephfs"), []string{}))
 			case volume.Flocker != nil:
 				badVolumeTypes.Insert("flocker")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("flocker"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("flocker"), []string{}))
 			case volume.FC != nil:
 				badVolumeTypes.Insert("fc")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("fc"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("fc"), []string{}))
 			case volume.AzureFile != nil:
 				badVolumeTypes.Insert("azureFile")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("azureFile"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("azureFile"), []string{}))
 			case volume.VsphereVolume != nil:
 				badVolumeTypes.Insert("vsphereVolume")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("vsphereVolume"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("vsphereVolume"), []string{}))
 			case volume.Quobyte != nil:
 				badVolumeTypes.Insert("quobyte")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("quobyte"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("quobyte"), []string{}))
 			case volume.AzureDisk != nil:
 				badVolumeTypes.Insert("azureDisk")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("azureDisk"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("azureDisk"), []string{}))
 			case volume.PhotonPersistentDisk != nil:
 				badVolumeTypes.Insert("photonPersistentDisk")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("photonPersistentDisk"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("photonPersistentDisk"), []string{}))
 			case volume.PortworxVolume != nil:
 				badVolumeTypes.Insert("portworxVolume")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("portworxVolume"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("portworxVolume"), []string{}))
 			case volume.ScaleIO != nil:
 				badVolumeTypes.Insert("scaleIO")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("scaleIO"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("scaleIO"), []string{}))
 			case volume.StorageOS != nil:
 				badVolumeTypes.Insert("storageos")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("storageos"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("storageos"), []string{}))
 			default:
 				badVolumeTypes.Insert("unknown")
-				badVolumes.Add(volume.Name, opts, forbidden(volumesIndexPath.child("unknown"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("unknown"), []string{}))
 			}
 		}
 	}

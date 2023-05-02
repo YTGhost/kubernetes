@@ -44,7 +44,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
@@ -58,7 +58,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
@@ -78,7 +78,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			allowed: true,
 		},
@@ -90,7 +90,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			allowed: true,
 		},
@@ -102,7 +102,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `container "a" must set securityContext.capabilities.drop=["ALL"]`,
@@ -116,7 +116,7 @@ func TestCapabilitiesRestricted_1_25(t *testing.T) {
 					{Name: "a"},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `container "a" must set securityContext.capabilities.drop=["ALL"]`,
@@ -165,7 +165,7 @@ func TestCapabilitiesRestricted_1_22(t *testing.T) {
 					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
 				}}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,
@@ -179,7 +179,7 @@ func TestCapabilitiesRestricted_1_22(t *testing.T) {
 					{Name: "c", SecurityContext: &corev1.SecurityContext{Capabilities: &corev1.Capabilities{Add: []corev1.Capability{"NET_BIND_SERVICE", "CHOWN"}, Drop: []corev1.Capability{"ALL", "FOO"}}}},
 				}}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `unrestricted capabilities`,
 			expectDetail: `containers "a", "b" must set securityContext.capabilities.drop=["ALL"]; containers "a", "b", "c" must not include "BAR", "BAZ", "CHOWN", "FOO" in securityContext.capabilities.add`,

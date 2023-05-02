@@ -64,16 +64,20 @@ func runAsUser_1_23(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opt
 	var badSetters violations[string]
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsUser != nil && *podSpec.SecurityContext.RunAsUser == 0 {
-		badSetters.Add("pod", opts, forbidden(runAsUserPath, []string{"0"}))
+		var errFn ErrFn
+		if opts.withFieldErrors {
+			errFn = forbidden(runAsUserPath, []string{"0"})
+		}
+		badSetters.Add("pod", errFn)
 	}
 
 	// containers that explicitly set runAsUser=0
 	var explicitlyBadContainers violations[string]
 	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.RunAsUser != nil && *container.SecurityContext.RunAsUser == 0 {
-			explicitlyBadContainers.Add(container.Name, opts)
+			explicitlyBadContainers.Add(container.Name)
 			explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("runAsUser"), []string{
 				"0",
 			}))
@@ -87,7 +91,6 @@ func runAsUser_1_23(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opt
 				pluralize("container", "containers", explicitlyBadContainers.Len()),
 				joinQuote(explicitlyBadContainers.Data()),
 			),
-			opts,
 			explicitlyErrFns...,
 		)
 	}

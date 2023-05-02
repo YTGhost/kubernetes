@@ -75,9 +75,13 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SeccompProfile != nil {
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
-			badSetters.Add("pod", opts, forbidden(seccompProfileTypePath, []string{
-				string(podSpec.SecurityContext.SeccompProfile.Type),
-			}))
+			var errFn ErrFn
+			if opts.withFieldErrors {
+				errFn = forbidden(seccompProfileTypePath, []string{
+					string(podSpec.SecurityContext.SeccompProfile.Type),
+				})
+			}
+			badSetters.Add("pod", errFn)
 			badValues.Insert(string(podSpec.SecurityContext.SeccompProfile.Type))
 		} else {
 			podSeccompSet = true
@@ -90,12 +94,12 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 	var implicitlyBadContainers violations[string]
 	var explicitlyErrFns []ErrFn
 
-	visitContainersWithPath(podSpec, func(c *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
 		if c.SecurityContext != nil && c.SecurityContext.SeccompProfile != nil {
 			// container explicitly set seccompProfile
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
-				explicitlyBadContainers.Add(c.Name, opts)
+				explicitlyBadContainers.Add(c.Name)
 				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("seccompProfile").child("type"), []string{
 					string(c.SecurityContext.SeccompProfile.Type),
 				}))
@@ -105,7 +109,11 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 			// container did not explicitly set seccompProfile
 			if !podSeccompSet {
 				// no valid pod-level seccompProfile, so this container implicitly has a bad value
-				implicitlyBadContainers.Add(c.Name, opts, required(seccompProfileTypePath))
+				var errFn ErrFn
+				if opts.withFieldErrors {
+					errFn = required(seccompProfileTypePath)
+				}
+				implicitlyBadContainers.Add(c.Name, errFn)
 			}
 		}
 	})
@@ -117,7 +125,6 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 				pluralize("container", "containers", explicitlyBadContainers.Len()),
 				joinQuote(explicitlyBadContainers.Data()),
 			),
-			opts,
 			explicitlyErrFns...,
 		)
 	}

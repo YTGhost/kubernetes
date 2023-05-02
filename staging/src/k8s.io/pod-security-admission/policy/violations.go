@@ -27,21 +27,19 @@ type violations[T any] struct {
 	errs field.ErrorList
 }
 
-func (v *violations[T]) Add(data T, opts options, errFns ...ErrFn) {
+func (v *violations[T]) Add(data T, errFns ...ErrFn) {
 	v.data = append(v.data, data)
-	v.AddErrs(opts, errFns...)
+	v.AddErrs(errFns...)
 }
 
-func (v *violations[T]) AddErrs(opts options, errFns ...ErrFn) {
-	opts.errListHandler(func() {
-		for _, errFn := range errFns {
-			if errFn != nil {
-				if err := errFn(); err != nil {
-					v.errs = append(v.errs, err)
-				}
+func (v *violations[T]) AddErrs(errFns ...ErrFn) {
+	for _, errFn := range errFns {
+		if errFn != nil {
+			if err := errFn(); err != nil {
+				v.errs = append(v.errs, err)
 			}
 		}
-	})
+	}
 }
 
 func (v *violations[T]) Empty() bool {

@@ -47,7 +47,7 @@ func TestPrivileged(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `privileged`,
 			expectDetail: `containers "d", "e" must not set securityContext.privileged=true`,
@@ -64,7 +64,7 @@ func TestPrivileged(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `privileged`,
 			expectDetail: `containers "d", "e" must not set securityContext.privileged=true`,

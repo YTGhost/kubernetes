@@ -109,7 +109,7 @@ func TestAppArmorProfile(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `forbidden AppArmor profiles`,
 			expectDetail: strings.Join([]string{
@@ -134,7 +134,7 @@ func TestAppArmorProfile(t *testing.T) {
 				},
 			},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `forbidden AppArmor profiles`,
 			expectDetail: strings.Join([]string{

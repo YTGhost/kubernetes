@@ -78,7 +78,7 @@ var (
 func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var badContainers violations[string]
 	nonDefaultCapabilities := sets.NewString()
-	visitContainersWithPath(podSpec, func(container *corev1.Container, pathFn PathFn) {
+	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {
 			valid := true
 			forbiddenValue := sets.NewString()
@@ -90,7 +90,7 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 				}
 			}
 			if !valid {
-				badContainers.Add(container.Name, opts, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValue.List()))
+				badContainers.Add(container.Name, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValue.List()))
 			}
 		}
 	})

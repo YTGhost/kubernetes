@@ -43,7 +43,7 @@ func TestHostPort(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `hostPort`,
 			expectDetail: `container "b" uses hostPort 20`,
@@ -57,7 +57,7 @@ func TestHostPort(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `hostPort`,
 			expectDetail: `container "b" uses hostPort 20`,
@@ -75,7 +75,7 @@ func TestHostPort(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: false,
+				withFieldErrors: false,
 			},
 			expectReason: `hostPort`,
 			expectDetail: `containers "b", "c" use hostPorts 10, 20, 30`,
@@ -90,7 +90,7 @@ func TestHostPort(t *testing.T) {
 				},
 			}},
 			opts: options{
-				withErrList: true,
+				withFieldErrors: true,
 			},
 			expectReason: `hostPort`,
 			expectDetail: `containers "b", "c" use hostPorts 10, 20, 30`,
