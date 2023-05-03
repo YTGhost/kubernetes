@@ -18,6 +18,7 @@ package policy
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -85,20 +86,18 @@ func validSeccompAnnotationValue(v string) bool {
 
 // seccompProfileBaseline_1_0 checks baseline policy on seccomp alpha annotation
 func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	forbiddenValues := sets.NewString()
-	badSetters := violations[string]{}
-	var errFns []ErrFn
+	var forbiddenValues []string
+	m := map[string][]ErrFn{}
+	badSetters := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	if val, ok := podMetadata.Annotations[annotationKeyPod]; ok {
 		if !validSeccompAnnotationValue(val) {
-			forbiddenValues.Insert(fmt.Sprintf("%s=%q", annotationKeyPod, val))
-			var errFn ErrFn
-			if opts.withFieldErrors {
-				errFn = forbidden(annotationsPath.key(annotationKeyPod), []string{
-					val,
-				})
-			}
-			errFns = append(errFns, errFn)
+			forbiddenValue := fmt.Sprintf("%s=%q", annotationKeyPod, val)
+			m[forbiddenValue] = append(m[forbiddenValue], forbidden(annotationsPath.key(annotationKeyPod), []string{
+				val,
+			}))
 		}
 	}
 
@@ -106,27 +105,28 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 		annotation := annotationKeyContainerPrefix + c.Name
 		if val, ok := podMetadata.Annotations[annotation]; ok {
 			if !validSeccompAnnotationValue(val) {
-				forbiddenValues.Insert(fmt.Sprintf("%s=%q", annotation, val))
-				var errFn ErrFn
-				if opts.withFieldErrors {
-					errFn = forbidden(annotationsPath.key(annotation), []string{
-						val,
-					})
-				}
-				errFns = append(errFns, errFn)
+				forbiddenValue := fmt.Sprintf("%s=%q", annotation, val)
+				m[forbiddenValue] = append(m[forbiddenValue], forbidden(annotationsPath.key(annotation), []string{
+					val,
+				}))
 			}
 		}
 	})
 
-	badSetters.AddErrs(errFns...)
+	for forbiddenValue, errFns := range m {
+		forbiddenValues = append(forbiddenValues, forbiddenValue)
+		badSetters.Add(forbiddenValue, errFns...)
+	}
+
 	if len(forbiddenValues) > 0 {
+		sort.Strings(forbiddenValues)
 		return CheckResult{
 			Allowed:         false,
 			ForbiddenReason: "seccompProfile",
 			ForbiddenDetail: fmt.Sprintf(
 				"forbidden %s %s",
 				pluralize("annotation", "annotations", len(forbiddenValues)),
-				strings.Join(forbiddenValues.List(), ", "),
+				strings.Join(forbiddenValues, ", "),
 			),
 			ErrList: badSetters.Errs(),
 		}
@@ -138,7 +138,9 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 // seccompProfileBaseline_1_19 checks baseline policy on securityContext.seccompProfile field
 func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set seccompProfile.type to a bad value
-	var badSetters violations[string]
+	badSetters := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	badValues := sets.NewString()
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SeccompProfile != nil {
@@ -155,7 +157,9 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 	}
 
 	// containers that explicitly set seccompProfile.type to a bad value
-	var explicitlyBadContainers violations[string]
+	explicitlyBadContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
@@ -164,7 +168,7 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers.Add(c.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("seccompProfile").child("type"), []string{
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type"), []string{
 					string(c.SecurityContext.SeccompProfile.Type),
 				}))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))

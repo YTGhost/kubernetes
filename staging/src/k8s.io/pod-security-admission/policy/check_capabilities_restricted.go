@@ -78,12 +78,16 @@ func CheckCapabilitiesRestricted() Check {
 
 func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	forbiddenCapabilities := sets.NewString()
-	var containersMissingDropAll violations[string]
-	var containersAddingForbidden violations[string]
+	containersMissingDropAll := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
+	containersAddingForbidden := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {
-			containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext").child("capabilities").child("drop")))
+			containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext", "capabilities", "drop")))
 			return
 		}
 
@@ -102,9 +106,9 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 					strSlice[i] = string(v)
 				}
 				forbiddenValues := sets.NewString(strSlice...)
-				containersMissingDropAll.Add(container.Name, forbidden(pathFn.child("securityContext").child("capabilities").child("drop"), forbiddenValues.List()))
+				containersMissingDropAll.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "drop"), forbiddenValues.List()))
 			} else if length == 0 {
-				containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext").child("capabilities").child("drop")))
+				containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext", "capabilities", "drop")))
 			}
 		}
 
@@ -118,7 +122,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			}
 		}
 		if addedForbidden {
-			containersAddingForbidden.Add(container.Name, forbidden(pathFn.child("securityContext").child("capabilities").child("add"), forbiddenValues.List()))
+			containersAddingForbidden.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "add"), forbiddenValues.List()))
 		}
 	})
 

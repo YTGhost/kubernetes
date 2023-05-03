@@ -31,12 +31,12 @@ var (
 	volumesPath                = specPath.child("volumes")
 	runAsNonRootPath           = securityContextPath.child("runAsNonRoot")
 	runAsUserPath              = securityContextPath.child("runAsUser")
-	seccompProfileTypePath     = securityContextPath.child("seccompProfile").child("type")
-	seLinuxOptionsTypePath     = securityContextPath.child("seLinuxOptions").child("type")
-	seLinuxOptionsUserPath     = securityContextPath.child("seLinuxOptions").child("user")
-	seLinuxOptionsRolePath     = securityContextPath.child("seLinuxOptions").child("role")
+	seccompProfileTypePath     = securityContextPath.child("seccompProfile", "type")
+	seLinuxOptionsTypePath     = securityContextPath.child("seLinuxOptions", "type")
+	seLinuxOptionsUserPath     = securityContextPath.child("seLinuxOptions", "user")
+	seLinuxOptionsRolePath     = securityContextPath.child("seLinuxOptions", "role")
 	sysctlsPath                = securityContextPath.child("sysctls")
-	hostProcessPath            = securityContextPath.child("windowsOptions").child("hostProcess")
+	hostProcessPath            = securityContextPath.child("windowsOptions", "hostProcess")
 )
 
 type PathFn func() *field.Path
@@ -63,7 +63,7 @@ func (parent PathFn) index(i int) PathFn {
 	}
 }
 
-func (parent PathFn) child(name string) PathFn {
+func (parent PathFn) child(name string, moreNames ...string) PathFn {
 	if parent == nil {
 		return nil
 	}
@@ -72,7 +72,7 @@ func (parent PathFn) child(name string) PathFn {
 		if p == nil {
 			return nil
 		}
-		return p.Child(name)
+		return p.Child(name, moreNames...)
 	}
 }
 

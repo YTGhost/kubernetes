@@ -77,9 +77,11 @@ var (
 func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var (
 		// sources that set bad seLinuxOptions
-		badSetters violations[string]
-		errFns     []ErrFn
-
+		badSetters = violations[string]{
+			withFieldErrors: opts.withFieldErrors,
+		}
+		badContainersErrFns []ErrFn
+		badPodErrFns        []ErrFn
 		// invalid type values set
 		badTypes = sets.NewString()
 		// was user set?
@@ -94,11 +96,11 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			badTypes.Insert(selinuxOpts.Type)
 			if pathFn != nil {
-				errFns = append(errFns, forbidden(pathFn.child("securityContext").child("seLinuxOptions").child("type"), []string{
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "type"), []string{
 					selinuxOpts.Type,
 				}))
-			} else if isPodLevel && opts.withFieldErrors {
-				errFns = append(errFns, forbidden(seLinuxOptionsTypePath, []string{
+			} else if isPodLevel {
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsTypePath, []string{
 					selinuxOpts.Type,
 				}))
 			}
@@ -107,11 +109,11 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			setUser = true
 			if pathFn != nil {
-				errFns = append(errFns, forbidden(pathFn.child("securityContext").child("seLinuxOptions").child("user"), []string{
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "user"), []string{
 					selinuxOpts.User,
 				}))
-			} else if isPodLevel && opts.withFieldErrors {
-				errFns = append(errFns, forbidden(seLinuxOptionsUserPath, []string{
+			} else if isPodLevel {
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsUserPath, []string{
 					selinuxOpts.User,
 				}))
 			}
@@ -120,11 +122,11 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			setRole = true
 			if pathFn != nil {
-				errFns = append(errFns, forbidden(pathFn.child("securityContext").child("seLinuxOptions").child("role"), []string{
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "role"), []string{
 					selinuxOpts.Role,
 				}))
-			} else if isPodLevel && opts.withFieldErrors {
-				errFns = append(errFns, forbidden(seLinuxOptionsRolePath, []string{
+			} else if isPodLevel {
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsRolePath, []string{
 					selinuxOpts.Role,
 				}))
 			}
@@ -134,27 +136,27 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SELinuxOptions != nil {
 		if !validSELinuxOptions(podSpec.SecurityContext.SELinuxOptions, nil, true) {
-			badSetters.Add("pod")
+			badSetters.Add("pod", badPodErrFns...)
 		}
 	}
 
-	var badContainers violations[string]
+	var badContainers []string
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.SELinuxOptions != nil {
 			if !validSELinuxOptions(container.SecurityContext.SELinuxOptions, pathFn, false) {
-				badContainers.Add(container.Name)
+				badContainers = append(badContainers, container.Name)
 			}
 		}
 	})
 
-	badSetters.AddErrs(errFns...)
-	if !badContainers.Empty() {
+	if len(badContainers) > 0 {
 		badSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", badContainers.Len()),
-				joinQuote(badContainers.Data()),
+				pluralize("container", "containers", len(badContainers)),
+				joinQuote(badContainers),
 			),
+			badContainersErrFns...,
 		)
 	}
 

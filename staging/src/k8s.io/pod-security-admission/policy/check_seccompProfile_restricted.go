@@ -68,7 +68,9 @@ func CheckSeccompProfileRestricted() Check {
 // seccompProfileRestricted_1_19 checks restricted policy on securityContext.seccompProfile field
 func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set seccompProfile.type to a bad value
-	var badSetters violations[string]
+	badSetters := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	badValues := sets.NewString()
 
 	podSeccompSet := false
@@ -89,9 +91,13 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 	}
 
 	// containers that explicitly set seccompProfile.type to a bad value
-	var explicitlyBadContainers violations[string]
+	explicitlyBadContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	// containers that didn't set seccompProfile and aren't caught by a pod-level seccompProfile
-	var implicitlyBadContainers violations[string]
+	implicitlyBadContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
@@ -100,7 +106,7 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers.Add(c.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("seccompProfile").child("type"), []string{
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type"), []string{
 					string(c.SecurityContext.SeccompProfile.Type),
 				}))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))

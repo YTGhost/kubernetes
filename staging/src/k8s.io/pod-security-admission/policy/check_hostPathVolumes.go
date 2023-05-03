@@ -55,7 +55,9 @@ func CheckHostPathVolumes() Check {
 }
 
 func hostPathVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var hostVolumes violations[string]
+	hostVolumes := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	for i, volume := range podSpec.Volumes {
 		if volume.HostPath != nil {

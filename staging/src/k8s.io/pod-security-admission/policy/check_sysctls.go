@@ -96,7 +96,9 @@ func sysctls_1_27(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts 
 }
 
 func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_allowed_set sets.String, opts options) CheckResult {
-	var forbiddenSysctls violations[string]
+	forbiddenSysctls := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	if podSpec.SecurityContext != nil {
 		for i, sysctl := range podSpec.SecurityContext.Sysctls {

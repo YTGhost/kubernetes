@@ -23,20 +23,19 @@ import (
 type ErrFn func() *field.Error
 
 type violations[T any] struct {
-	data []T
-	errs field.ErrorList
+	data            []T
+	errs            field.ErrorList
+	withFieldErrors bool
 }
 
 func (v *violations[T]) Add(data T, errFns ...ErrFn) {
 	v.data = append(v.data, data)
-	v.AddErrs(errFns...)
-}
-
-func (v *violations[T]) AddErrs(errFns ...ErrFn) {
-	for _, errFn := range errFns {
-		if errFn != nil {
-			if err := errFn(); err != nil {
-				v.errs = append(v.errs, err)
+	if v.withFieldErrors {
+		for _, errFn := range errFns {
+			if errFn != nil {
+				if err := errFn(); err != nil {
+					v.errs = append(v.errs, err)
+				}
 			}
 		}
 	}

@@ -57,15 +57,15 @@ func CheckWindowsHostProcess() Check {
 }
 
 func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers violations[string]
+	var badContainers []string
 	var errFns []ErrFn
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil &&
 			container.SecurityContext.WindowsOptions != nil &&
 			container.SecurityContext.WindowsOptions.HostProcess != nil &&
 			*container.SecurityContext.WindowsOptions.HostProcess {
-			badContainers.Add(container.Name)
-			errFns = append(errFns, forbidden(pathFn.child("securityContext").child("windowsOptions").child("hostProcess"), []string{
+			badContainers = append(badContainers, container.Name)
+			errFns = append(errFns, forbidden(pathFn.child("securityContext", "windowsOptions", "hostProcess"), []string{
 				"true",
 			}))
 		}
@@ -80,7 +80,9 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 	}
 
 	// pod or containers explicitly set hostProcess=true
-	var forbiddenSetters violations[string]
+	forbiddenSetters := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	if podSpecForbidden {
 		var errFn ErrFn
 		if opts.withFieldErrors {
@@ -90,12 +92,12 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 		}
 		forbiddenSetters.Add("pod", errFn)
 	}
-	if !badContainers.Empty() {
+	if len(badContainers) > 0 {
 		forbiddenSetters.Add(
 			fmt.Sprintf(
 				"%s %s",
-				pluralize("container", "containers", badContainers.Len()),
-				joinQuote(badContainers.Data()),
+				pluralize("container", "containers", len(badContainers)),
+				joinQuote(badContainers),
 			),
 			errFns...,
 		)

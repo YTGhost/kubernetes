@@ -27,24 +27,24 @@ type ContainerVisitor func(container *corev1.Container, pathFn PathFn)
 // of every container in the given pod spec.
 func visitContainers(podSpec *corev1.PodSpec, opts options, visitor ContainerVisitor) {
 	for i := range podSpec.InitContainers {
+		var pathFn PathFn
 		if opts.withFieldErrors {
-			visitor(&podSpec.InitContainers[i], initContainersFldPath.index(i))
-		} else {
-			visitor(&podSpec.InitContainers[i], nil)
+			pathFn = initContainersFldPath.index(i)
 		}
+		visitor(&podSpec.InitContainers[i], pathFn)
 	}
 	for i := range podSpec.Containers {
+		var pathFn PathFn
 		if opts.withFieldErrors {
-			visitor(&podSpec.Containers[i], containersFldPath.index(i))
-		} else {
-			visitor(&podSpec.Containers[i], nil)
+			pathFn = containersFldPath.index(i)
 		}
+		visitor(&podSpec.Containers[i], pathFn)
 	}
 	for i := range podSpec.EphemeralContainers {
+		var pathFn PathFn
 		if opts.withFieldErrors {
-			visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), ephemeralContainersFldPath.index(i))
-		} else {
-			visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), nil)
+			pathFn = ephemeralContainersFldPath.index(i)
 		}
+		visitor((*corev1.Container)(&podSpec.EphemeralContainers[i].EphemeralContainerCommon), pathFn)
 	}
 }

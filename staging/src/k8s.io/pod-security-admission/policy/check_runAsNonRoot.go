@@ -60,7 +60,9 @@ func CheckRunAsNonRoot() Check {
 
 func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set runAsNonRoot=false
-	var badSetters violations[string]
+	badSetters := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	podRunAsNonRoot := false
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsNonRoot != nil {
@@ -76,9 +78,13 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 	}
 
 	// containers that explicitly set runAsNonRoot=false
-	var explicitlyBadContainers violations[string]
+	explicitlyBadContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	// containers that didn't set runAsNonRoot and aren't caught by a pod-level runAsNonRoot=true
-	var implicitlyBadContainers violations[string]
+	implicitlyBadContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
@@ -86,7 +92,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 			// container explicitly set runAsNonRoot
 			if !*container.SecurityContext.RunAsNonRoot {
 				explicitlyBadContainers.Add(container.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext").child("runAsNonRoot"), []string{
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsNonRoot"), []string{
 					"false",
 				}))
 			}

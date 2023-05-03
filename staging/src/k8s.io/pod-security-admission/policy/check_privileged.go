@@ -53,11 +53,13 @@ func CheckPrivileged() Check {
 }
 
 func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers violations[string]
+	badContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-			badContainers.Add(container.Name, forbidden(pathFn.child("securityContext").child("privileged"), []string{
+			badContainers.Add(container.Name, forbidden(pathFn.child("securityContext", "privileged"), []string{
 				"true",
 			}))
 		}

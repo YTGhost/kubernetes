@@ -57,7 +57,9 @@ func CheckProcMount() Check {
 }
 
 func procMount_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var badContainers violations[string]
+	badContainers := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 	forbiddenProcMountTypes := sets.NewString()
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		// allow if the security context is nil.
@@ -70,7 +72,7 @@ func procMount_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 		}
 		// check if the value of the proc mount type is valid.
 		if *container.SecurityContext.ProcMount != corev1.DefaultProcMount {
-			badContainers.Add(container.Name, forbidden(pathFn.child("securityContext").child("procMount"), []string{
+			badContainers.Add(container.Name, forbidden(pathFn.child("securityContext", "procMount"), []string{
 				string(*container.SecurityContext.ProcMount)},
 			))
 			forbiddenProcMountTypes.Insert(string(*container.SecurityContext.ProcMount))

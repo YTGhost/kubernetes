@@ -62,16 +62,13 @@ func allowedProfile(profile string) bool {
 }
 
 func appArmorProfile_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var forbiddenAppArmorProfile violations[string]
+	forbiddenAppArmorProfile := violations[string]{
+		withFieldErrors: opts.withFieldErrors,
+	}
 
 	for k, v := range podMetadata.Annotations {
 		if strings.HasPrefix(k, corev1.AppArmorBetaContainerAnnotationKeyPrefix) && !allowedProfile(v) {
-			var errFn ErrFn
-			if opts.withFieldErrors {
-				errFn = forbidden(annotationsPath.key(k), []string{v})
-			}
-			forbiddenAppArmorProfile.Add(fmt.Sprintf("%s=%q", k, v), errFn)
-
+			forbiddenAppArmorProfile.Add(fmt.Sprintf("%s=%q", k, v), forbidden(annotationsPath.key(k), []string{v}))
 		}
 	}
 
