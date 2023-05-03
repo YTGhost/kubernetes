@@ -39,7 +39,7 @@ func withOptions(f func(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 	}
 }
 
-func withFieldErrors() Option {
+func WithFieldErrors() Option {
 	return func(opt *options) {
 		opt.withFieldErrors = true
 	}
