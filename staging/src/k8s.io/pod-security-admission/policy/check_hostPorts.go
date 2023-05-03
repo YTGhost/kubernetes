@@ -69,7 +69,7 @@ func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 			if c.HostPort != 0 {
 				valid = false
 				forbiddenHostPorts.Insert(strconv.Itoa(int(c.HostPort)))
-				errFns = append(errFns, forbidden(pathFn.child("ports").index(i).child("hostPort"), []string{
+				errFns = append(errFns, forbidden(pathFn.child("ports").index(i).child("hostPort")).withBadValue([]string{
 					strconv.Itoa(int(c.HostPort)),
 				}))
 			}

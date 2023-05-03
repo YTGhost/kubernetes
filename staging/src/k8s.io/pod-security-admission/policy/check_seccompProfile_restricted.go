@@ -79,7 +79,7 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
 			var errFn ErrFn
 			if opts.withFieldErrors {
-				errFn = forbidden(seccompProfileTypePath, []string{
+				errFn = forbidden(seccompProfileTypePath).withBadValue([]string{
 					string(podSpec.SecurityContext.SeccompProfile.Type),
 				})
 			}
@@ -106,7 +106,7 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers.Add(c.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type"), []string{
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type")).withBadValue([]string{
 					string(c.SecurityContext.SeccompProfile.Type),
 				}))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))

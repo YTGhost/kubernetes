@@ -96,11 +96,11 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			badTypes.Insert(selinuxOpts.Type)
 			if pathFn != nil {
-				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "type"), []string{
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "type")).withBadValue([]string{
 					selinuxOpts.Type,
 				}))
 			} else if isPodLevel {
-				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsTypePath, []string{
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsTypePath).withBadValue([]string{
 					selinuxOpts.Type,
 				}))
 			}
@@ -109,11 +109,11 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			setUser = true
 			if pathFn != nil {
-				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "user"), []string{
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "user")).withBadValue([]string{
 					selinuxOpts.User,
 				}))
 			} else if isPodLevel {
-				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsUserPath, []string{
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsUserPath).withBadValue([]string{
 					selinuxOpts.User,
 				}))
 			}
@@ -122,11 +122,11 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			setRole = true
 			if pathFn != nil {
-				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "role"), []string{
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "role")).withBadValue([]string{
 					selinuxOpts.Role,
 				}))
 			} else if isPodLevel {
-				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsRolePath, []string{
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsRolePath).withBadValue([]string{
 					selinuxOpts.Role,
 				}))
 			}

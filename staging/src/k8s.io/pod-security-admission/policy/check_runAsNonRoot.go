@@ -69,7 +69,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 		if !*podSpec.SecurityContext.RunAsNonRoot {
 			var errFn ErrFn
 			if opts.withFieldErrors {
-				errFn = forbidden(runAsNonRootPath, []string{"false"})
+				errFn = forbidden(runAsNonRootPath).withBadValue([]string{"false"})
 			}
 			badSetters.Add("pod", errFn)
 		} else {
@@ -92,7 +92,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 			// container explicitly set runAsNonRoot
 			if !*container.SecurityContext.RunAsNonRoot {
 				explicitlyBadContainers.Add(container.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsNonRoot"), []string{
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsNonRoot")).withBadValue([]string{
 					"false",
 				}))
 			}

@@ -70,9 +70,9 @@ func allowPrivilegeEscalation_1_8(podMetadata *metav1.ObjectMeta, podSpec *corev
 		if container.SecurityContext == nil {
 			badContainers.Add(container.Name, required(pathFn))
 		} else if container.SecurityContext.AllowPrivilegeEscalation == nil {
-			badContainers.Add(container.Name, forbidden(pathFn, []string{"nil"}))
+			badContainers.Add(container.Name, forbidden(pathFn).withBadValue([]string{"nil"}))
 		} else if *container.SecurityContext.AllowPrivilegeEscalation {
-			badContainers.Add(container.Name, forbidden(pathFn, []string{"true"}))
+			badContainers.Add(container.Name, forbidden(pathFn).withBadValue([]string{"true"}))
 		}
 	})
 

@@ -57,7 +57,21 @@ func (v *violations[T]) Errs() field.ErrorList {
 	return v.errs
 }
 
-func forbidden(pathFn func() *field.Path, value interface{}) ErrFn {
+func (f ErrFn) withBadValue(badValue interface{}) ErrFn {
+	if f == nil {
+		return nil
+	}
+	return func() *field.Error {
+		err := f()
+		if err == nil {
+			return nil
+		}
+		err.BadValue = badValue
+		return err
+	}
+}
+
+func forbidden(pathFn func() *field.Path) ErrFn {
 	if pathFn == nil {
 		return nil
 	}
@@ -66,7 +80,7 @@ func forbidden(pathFn func() *field.Path, value interface{}) ErrFn {
 		if path == nil {
 			return nil
 		}
-		return withBadValue(field.Forbidden(path, ""), value)
+		return field.Forbidden(path, "")
 	}
 }
 

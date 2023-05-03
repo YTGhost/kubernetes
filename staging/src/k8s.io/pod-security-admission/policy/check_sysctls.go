@@ -105,7 +105,7 @@ func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_al
 			if !sysctls_allowed_set.Has(sysctl.Name) {
 				var errFn ErrFn
 				if opts.withFieldErrors {
-					errFn = forbidden(sysctlsPath.index(i).child("name"), []string{
+					errFn = forbidden(sysctlsPath.index(i).child("name")).withBadValue([]string{
 						sysctl.Name,
 					})
 				}

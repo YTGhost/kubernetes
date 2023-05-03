@@ -106,7 +106,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 					strSlice[i] = string(v)
 				}
 				forbiddenValues := sets.NewString(strSlice...)
-				containersMissingDropAll.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "drop"), forbiddenValues.List()))
+				containersMissingDropAll.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "drop")).withBadValue(forbiddenValues.List()))
 			} else if length == 0 {
 				containersMissingDropAll.Add(container.Name, required(pathFn.child("securityContext", "capabilities", "drop")))
 			}
@@ -122,7 +122,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			}
 		}
 		if addedForbidden {
-			containersAddingForbidden.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "add"), forbiddenValues.List()))
+			containersAddingForbidden.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "add")).withBadValue(forbiddenValues.List()))
 		}
 	})
 

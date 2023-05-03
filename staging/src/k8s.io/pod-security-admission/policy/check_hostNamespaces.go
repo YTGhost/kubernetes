@@ -61,15 +61,15 @@ func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 	}
 
 	if podSpec.HostNetwork {
-		hostNamespaces.Add("hostNetwork=true", forbidden(hostNetworkPath, []string{"true"}))
+		hostNamespaces.Add("hostNetwork=true", forbidden(hostNetworkPath).withBadValue([]string{"true"}))
 	}
 
 	if podSpec.HostPID {
-		hostNamespaces.Add("hostPID=true", forbidden(hostPIDPath, []string{"true"}))
+		hostNamespaces.Add("hostPID=true", forbidden(hostPIDPath).withBadValue([]string{"true"}))
 	}
 
 	if podSpec.HostIPC {
-		hostNamespaces.Add("hostIPC=true", forbidden(hostIPCPath, []string{"true"}))
+		hostNamespaces.Add("hostIPC=true", forbidden(hostIPCPath).withBadValue([]string{"true"}))
 	}
 
 	if !hostNamespaces.Empty() {

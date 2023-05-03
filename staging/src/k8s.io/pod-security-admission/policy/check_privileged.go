@@ -59,7 +59,7 @@ func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opt
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.Privileged != nil && *container.SecurityContext.Privileged {
-			badContainers.Add(container.Name, forbidden(pathFn.child("securityContext", "privileged"), []string{
+			badContainers.Add(container.Name, forbidden(pathFn.child("securityContext", "privileged")).withBadValue([]string{
 				"true",
 			}))
 		}

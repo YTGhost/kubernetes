@@ -92,7 +92,7 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 				}
 			}
 			if !valid {
-				badContainers.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "add"), forbiddenValue.List()))
+				badContainers.Add(container.Name, forbidden(pathFn.child("securityContext", "capabilities", "add")).withBadValue(forbiddenValue.List()))
 			}
 		}
 	})

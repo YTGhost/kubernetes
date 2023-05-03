@@ -64,8 +64,8 @@ func TestHostPathVolumes(t *testing.T) {
 			expectReason: `hostPath volumes`,
 			expectDetail: `volumes "a", "b"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.volumes[0].hostPath", BadValue: []string{}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.volumes[1].hostPath", BadValue: []string{}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.volumes[0].hostPath", BadValue: ""},
+				{Type: field.ErrorTypeForbidden, Field: "spec.volumes[1].hostPath", BadValue: ""},
 			},
 		},
 	}

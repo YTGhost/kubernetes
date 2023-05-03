@@ -17,7 +17,6 @@ limitations under the License.
 package policy
 
 import (
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"strings"
 )
 
@@ -33,9 +32,4 @@ func pluralize(singular, plural string, count int) string {
 		return singular
 	}
 	return plural
-}
-
-func withBadValue(err *field.Error, badValue interface{}) *field.Error {
-	err.BadValue = badValue
-	return err
 }

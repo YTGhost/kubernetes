@@ -110,70 +110,70 @@ func restrictedVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSp
 			switch {
 			case volume.HostPath != nil:
 				badVolumeTypes.Insert("hostPath")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("hostPath"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("hostPath")))
 			case volume.GCEPersistentDisk != nil:
 				badVolumeTypes.Insert("gcePersistentDisk")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("gcePersistentDisk"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("gcePersistentDisk")))
 			case volume.AWSElasticBlockStore != nil:
 				badVolumeTypes.Insert("awsElasticBlockStore")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("awsElasticBlockStore"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("awsElasticBlockStore")))
 			case volume.GitRepo != nil:
 				badVolumeTypes.Insert("gitRepo")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("gitRepo"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("gitRepo")))
 			case volume.NFS != nil:
 				badVolumeTypes.Insert("nfs")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("nfs"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("nfs")))
 			case volume.ISCSI != nil:
 				badVolumeTypes.Insert("iscsi")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("iscsi"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("iscsi")))
 			case volume.Glusterfs != nil:
 				badVolumeTypes.Insert("glusterfs")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("glusterfs"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("glusterfs")))
 			case volume.RBD != nil:
 				badVolumeTypes.Insert("rbd")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("rbd"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("rbd")))
 			case volume.FlexVolume != nil:
 				badVolumeTypes.Insert("flexVolume")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("flexVolume"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("flexVolume")))
 			case volume.Cinder != nil:
 				badVolumeTypes.Insert("cinder")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("cinder"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("cinder")))
 			case volume.CephFS != nil:
 				badVolumeTypes.Insert("cephfs")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("cephfs"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("cephfs")))
 			case volume.Flocker != nil:
 				badVolumeTypes.Insert("flocker")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("flocker"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("flocker")))
 			case volume.FC != nil:
 				badVolumeTypes.Insert("fc")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("fc"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("fc")))
 			case volume.AzureFile != nil:
 				badVolumeTypes.Insert("azureFile")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("azureFile"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("azureFile")))
 			case volume.VsphereVolume != nil:
 				badVolumeTypes.Insert("vsphereVolume")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("vsphereVolume"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("vsphereVolume")))
 			case volume.Quobyte != nil:
 				badVolumeTypes.Insert("quobyte")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("quobyte"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("quobyte")))
 			case volume.AzureDisk != nil:
 				badVolumeTypes.Insert("azureDisk")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("azureDisk"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("azureDisk")))
 			case volume.PhotonPersistentDisk != nil:
 				badVolumeTypes.Insert("photonPersistentDisk")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("photonPersistentDisk"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("photonPersistentDisk")))
 			case volume.PortworxVolume != nil:
 				badVolumeTypes.Insert("portworxVolume")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("portworxVolume"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("portworxVolume")))
 			case volume.ScaleIO != nil:
 				badVolumeTypes.Insert("scaleIO")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("scaleIO"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("scaleIO")))
 			case volume.StorageOS != nil:
 				badVolumeTypes.Insert("storageos")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("storageos"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("storageos")))
 			default:
 				badVolumeTypes.Insert("unknown")
-				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("unknown"), []string{}))
+				badVolumes.Add(volume.Name, forbidden(volumesIndexPath.child("unknown")))
 			}
 		}
 	}
