@@ -116,7 +116,8 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 			if !podSeccompSet {
 				// no valid pod-level seccompProfile, so this container implicitly has a bad value
 				var errFn ErrFn
-				if opts.withFieldErrors {
+				// Only need to save a single error
+				if len(implicitlyBadContainers.Errs()) == 0 && opts.withFieldErrors {
 					errFn = required(seccompProfileTypePath)
 				}
 				implicitlyBadContainers.Add(c.Name, errFn)

@@ -101,7 +101,8 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 			if !podRunAsNonRoot {
 				// no pod-level runAsNonRoot=true, so this container implicitly has a bad value
 				var errFn ErrFn
-				if opts.withFieldErrors {
+				// Only need to save a single error
+				if len(implicitlyBadContainers.Errs()) == 0 && opts.withFieldErrors {
 					errFn = required(runAsNonRootPath)
 				}
 				implicitlyBadContainers.Add(container.Name, errFn)

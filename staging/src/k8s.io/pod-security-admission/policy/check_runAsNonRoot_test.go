@@ -170,7 +170,6 @@ func TestRunAsNonRoot(t *testing.T) {
 			expectDetail: `pod or containers "a", "b" must set securityContext.runAsNonRoot=true`,
 			expectErrList: field.ErrorList{
 				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
-				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
 			},
 		},
 	}

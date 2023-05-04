@@ -229,7 +229,6 @@ func TestSeccompProfileRestricted_1_25(t *testing.T) {
 			expectDetail: `pod or containers "a", "b" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
 			expectErrList: field.ErrorList{
 				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.seccompProfile.type", BadValue: ""},
-				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.seccompProfile.type", BadValue: ""},
 			},
 		},
 	}
@@ -397,7 +396,6 @@ func TestSeccompProfileRestricted_1_19(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.seccompProfile.type to "RuntimeDefault" or "Localhost"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.seccompProfile.type", BadValue: ""},
 				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.seccompProfile.type", BadValue: ""},
 			},
 		},
