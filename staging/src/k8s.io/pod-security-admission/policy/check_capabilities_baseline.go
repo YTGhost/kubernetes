@@ -76,9 +76,7 @@ var (
 )
 
 func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	badContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badContainers := NewViolations[string](opts.withFieldErrors)
 	nonDefaultCapabilities := sets.NewString()
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.Capabilities != nil {

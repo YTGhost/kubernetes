@@ -68,9 +68,7 @@ func CheckSeccompProfileRestricted() Check {
 // seccompProfileRestricted_1_19 checks restricted policy on securityContext.seccompProfile field
 func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set seccompProfile.type to a bad value
-	badSetters := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badSetters := NewViolations[string](opts.withFieldErrors)
 	badValues := sets.NewString()
 
 	podSeccompSet := false
@@ -79,9 +77,7 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
 			var errFn ErrFn
 			if opts.withFieldErrors {
-				errFn = forbidden(seccompProfileTypePath).withBadValue([]string{
-					string(podSpec.SecurityContext.SeccompProfile.Type),
-				})
+				errFn = forbidden(seccompProfileTypePath).withBadValue(string(podSpec.SecurityContext.SeccompProfile.Type))
 			}
 			badSetters.Add("pod", errFn)
 			badValues.Insert(string(podSpec.SecurityContext.SeccompProfile.Type))
@@ -91,13 +87,9 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 	}
 
 	// containers that explicitly set seccompProfile.type to a bad value
-	explicitlyBadContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	explicitlyBadContainers := NewViolations[string](opts.withFieldErrors)
 	// containers that didn't set seccompProfile and aren't caught by a pod-level seccompProfile
-	implicitlyBadContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	implicitlyBadContainers := NewViolations[string](opts.withFieldErrors)
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
@@ -106,21 +98,14 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers.Add(c.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type")).withBadValue([]string{
-					string(c.SecurityContext.SeccompProfile.Type),
-				}))
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type")).withBadValue(string(c.SecurityContext.SeccompProfile.Type)))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))
 			}
 		} else {
 			// container did not explicitly set seccompProfile
 			if !podSeccompSet {
 				// no valid pod-level seccompProfile, so this container implicitly has a bad value
-				var errFn ErrFn
-				// Only need to save a single error
-				if len(implicitlyBadContainers.Errs()) == 0 && opts.withFieldErrors {
-					errFn = required(seccompProfileTypePath)
-				}
-				implicitlyBadContainers.Add(c.Name, errFn)
+				implicitlyBadContainers.Add(c.Name, required(pathFn.child("securityContext", "seccompProfile", "type")))
 			}
 		}
 	})

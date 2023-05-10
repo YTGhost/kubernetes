@@ -60,16 +60,14 @@ func CheckRunAsNonRoot() Check {
 
 func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set runAsNonRoot=false
-	badSetters := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badSetters := NewViolations[string](opts.withFieldErrors)
 
 	podRunAsNonRoot := false
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsNonRoot != nil {
 		if !*podSpec.SecurityContext.RunAsNonRoot {
 			var errFn ErrFn
 			if opts.withFieldErrors {
-				errFn = forbidden(runAsNonRootPath).withBadValue([]string{"false"})
+				errFn = forbidden(runAsNonRootPath).withBadValue(false)
 			}
 			badSetters.Add("pod", errFn)
 		} else {
@@ -78,13 +76,9 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 	}
 
 	// containers that explicitly set runAsNonRoot=false
-	explicitlyBadContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	explicitlyBadContainers := NewViolations[string](opts.withFieldErrors)
 	// containers that didn't set runAsNonRoot and aren't caught by a pod-level runAsNonRoot=true
-	implicitlyBadContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	implicitlyBadContainers := NewViolations[string](opts.withFieldErrors)
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
@@ -92,20 +86,13 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 			// container explicitly set runAsNonRoot
 			if !*container.SecurityContext.RunAsNonRoot {
 				explicitlyBadContainers.Add(container.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsNonRoot")).withBadValue([]string{
-					"false",
-				}))
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsNonRoot")).withBadValue(false))
 			}
 		} else {
 			// container did not explicitly set runAsNonRoot
 			if !podRunAsNonRoot {
 				// no pod-level runAsNonRoot=true, so this container implicitly has a bad value
-				var errFn ErrFn
-				// Only need to save a single error
-				if len(implicitlyBadContainers.Errs()) == 0 && opts.withFieldErrors {
-					errFn = required(runAsNonRootPath)
-				}
-				implicitlyBadContainers.Add(container.Name, errFn)
+				implicitlyBadContainers.Add(container.Name, required(pathFn.child("securityContext", "runAsNonRoot")))
 			}
 		}
 	})

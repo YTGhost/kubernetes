@@ -78,12 +78,8 @@ func CheckCapabilitiesRestricted() Check {
 
 func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	forbiddenCapabilities := sets.NewString()
-	containersMissingDropAll := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
-	containersAddingForbidden := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	containersMissingDropAll := NewViolations[string](opts.withFieldErrors)
+	containersAddingForbidden := NewViolations[string](opts.withFieldErrors)
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext == nil || container.SecurityContext.Capabilities == nil {

@@ -56,20 +56,18 @@ func CheckHostNamespaces() Check {
 }
 
 func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	hostNamespaces := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	hostNamespaces := NewViolations[string](opts.withFieldErrors)
 
 	if podSpec.HostNetwork {
-		hostNamespaces.Add("hostNetwork=true", forbidden(hostNetworkPath).withBadValue([]string{"true"}))
+		hostNamespaces.Add("hostNetwork=true", forbidden(hostNetworkPath).withBadValue(true))
 	}
 
 	if podSpec.HostPID {
-		hostNamespaces.Add("hostPID=true", forbidden(hostPIDPath).withBadValue([]string{"true"}))
+		hostNamespaces.Add("hostPID=true", forbidden(hostPIDPath).withBadValue(true))
 	}
 
 	if podSpec.HostIPC {
-		hostNamespaces.Add("hostIPC=true", forbidden(hostIPCPath).withBadValue([]string{"true"}))
+		hostNamespaces.Add("hostIPC=true", forbidden(hostIPCPath).withBadValue(true))
 	}
 
 	if !hostNamespaces.Empty() {

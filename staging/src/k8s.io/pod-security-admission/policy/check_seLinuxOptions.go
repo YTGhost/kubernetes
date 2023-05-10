@@ -77,9 +77,7 @@ var (
 func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	var (
 		// sources that set bad seLinuxOptions
-		badSetters = violations[string]{
-			withFieldErrors: opts.withFieldErrors,
-		}
+		badSetters          = NewViolations[string](opts.withFieldErrors)
 		badContainersErrFns []ErrFn
 		badPodErrFns        []ErrFn
 		// invalid type values set
@@ -96,39 +94,27 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			valid = false
 			badTypes.Insert(selinuxOpts.Type)
 			if pathFn != nil {
-				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "type")).withBadValue([]string{
-					selinuxOpts.Type,
-				}))
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "type")).withBadValue(selinuxOpts.Type))
 			} else if isPodLevel {
-				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsTypePath).withBadValue([]string{
-					selinuxOpts.Type,
-				}))
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsTypePath).withBadValue(selinuxOpts.Type))
 			}
 		}
 		if len(selinuxOpts.User) > 0 {
 			valid = false
 			setUser = true
 			if pathFn != nil {
-				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "user")).withBadValue([]string{
-					selinuxOpts.User,
-				}))
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "user")).withBadValue(selinuxOpts.User))
 			} else if isPodLevel {
-				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsUserPath).withBadValue([]string{
-					selinuxOpts.User,
-				}))
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsUserPath).withBadValue(selinuxOpts.User))
 			}
 		}
 		if len(selinuxOpts.Role) > 0 {
 			valid = false
 			setRole = true
 			if pathFn != nil {
-				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "role")).withBadValue([]string{
-					selinuxOpts.Role,
-				}))
+				badContainersErrFns = append(badContainersErrFns, forbidden(pathFn.child("securityContext", "seLinuxOptions", "role")).withBadValue(selinuxOpts.Role))
 			} else if isPodLevel {
-				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsRolePath).withBadValue([]string{
-					selinuxOpts.Role,
-				}))
+				badPodErrFns = append(badPodErrFns, forbidden(seLinuxOptionsRolePath).withBadValue(selinuxOpts.Role))
 			}
 		}
 		return valid

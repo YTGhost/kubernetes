@@ -22,13 +22,20 @@ import (
 
 type ErrFn func() *field.Error
 
-type violations[T any] struct {
+type Violations[T any] struct {
 	data            []T
 	errs            field.ErrorList
 	withFieldErrors bool
 }
 
-func (v *violations[T]) Add(data T, errFns ...ErrFn) {
+func NewViolations[T any](withFieldErrors bool) *Violations[T] {
+	violations := &Violations[T]{
+		withFieldErrors: withFieldErrors,
+	}
+	return violations
+}
+
+func (v *Violations[T]) Add(data T, errFns ...ErrFn) {
 	v.data = append(v.data, data)
 	if v.withFieldErrors {
 		for _, errFn := range errFns {
@@ -41,19 +48,19 @@ func (v *violations[T]) Add(data T, errFns ...ErrFn) {
 	}
 }
 
-func (v *violations[T]) Empty() bool {
+func (v *Violations[T]) Empty() bool {
 	return len(v.data) == 0
 }
 
-func (v *violations[T]) Data() []T {
+func (v *Violations[T]) Data() []T {
 	return v.data
 }
 
-func (v *violations[T]) Len() int {
+func (v *Violations[T]) Len() int {
 	return len(v.data)
 }
 
-func (v *violations[T]) Errs() field.ErrorList {
+func (v *Violations[T]) Errs() field.ErrorList {
 	return v.errs
 }
 

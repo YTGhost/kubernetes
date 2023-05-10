@@ -77,9 +77,9 @@ func TestWindowsHostProcess(t *testing.T) {
 			expectReason: `hostProcess`,
 			expectDetail: `pod and containers "e", "f" must not set securityContext.windowsOptions.hostProcess=true`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.windowsOptions.hostProcess", BadValue: []string{"true"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.windowsOptions.hostProcess", BadValue: []string{"true"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.windowsOptions.hostProcess", BadValue: []string{"true"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.windowsOptions.hostProcess", BadValue: true},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.windowsOptions.hostProcess", BadValue: true},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.windowsOptions.hostProcess", BadValue: true},
 			},
 		},
 	}

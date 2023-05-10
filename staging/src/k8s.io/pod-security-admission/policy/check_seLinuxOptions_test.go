@@ -108,12 +108,12 @@ func TestSELinuxOptions(t *testing.T) {
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod and containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: types "bar", "foo"; user may not be set; role may not be set`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: []string{"foo"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seLinuxOptions.type", BadValue: []string{"bar"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: "foo"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: "bar"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: "baz"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seLinuxOptions.type", BadValue: "bar"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.seLinuxOptions.user", BadValue: "bar"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.seLinuxOptions.role", BadValue: "baz"},
 			},
 		},
 		{
@@ -172,9 +172,9 @@ func TestSELinuxOptions(t *testing.T) {
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "foo"; user may not be set; role may not be set`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: []string{"foo"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: "foo"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: "bar"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: "baz"},
 			},
 		},
 		{
@@ -243,9 +243,9 @@ func TestSELinuxOptions(t *testing.T) {
 			expectReason: `seLinuxOptions`,
 			expectDetail: `containers "d", "e", "f" set forbidden securityContext.seLinuxOptions: type "bar"; user may not be set; role may not be set`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seLinuxOptions.type", BadValue: []string{"bar"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.seLinuxOptions.user", BadValue: []string{"bar"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.seLinuxOptions.role", BadValue: []string{"baz"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seLinuxOptions.type", BadValue: "bar"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.seLinuxOptions.user", BadValue: "bar"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[5].securityContext.seLinuxOptions.role", BadValue: "baz"},
 			},
 		},
 		{
@@ -278,7 +278,7 @@ func TestSELinuxOptions(t *testing.T) {
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: type "bad"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: []string{"bad"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.type", BadValue: "bad"},
 			},
 		},
 		{
@@ -311,7 +311,7 @@ func TestSELinuxOptions(t *testing.T) {
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: user may not be set`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: []string{"bad"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.user", BadValue: "bad"},
 			},
 		},
 		{
@@ -344,7 +344,7 @@ func TestSELinuxOptions(t *testing.T) {
 			expectReason: `seLinuxOptions`,
 			expectDetail: `pod set forbidden securityContext.seLinuxOptions: role may not be set`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: []string{"bad"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seLinuxOptions.role", BadValue: "bad"},
 			},
 		},
 	}

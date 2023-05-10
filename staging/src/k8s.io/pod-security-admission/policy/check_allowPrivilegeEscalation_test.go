@@ -68,8 +68,8 @@ func TestAllowPrivilegeEscalation_1_25(t *testing.T) {
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
 			expectErrList: field.ErrorList{
 				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.allowPrivilegeEscalation", BadValue: ""},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.allowPrivilegeEscalation", BadValue: []string{"nil"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.allowPrivilegeEscalation", BadValue: []string{"true"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.allowPrivilegeEscalation", BadValue: "nil"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.allowPrivilegeEscalation", BadValue: true},
 			},
 			allowed: false,
 		},
@@ -190,8 +190,8 @@ func TestAllowPrivilegeEscalation_1_8(t *testing.T) {
 			expectDetail: `containers "a", "b", "c" must set securityContext.allowPrivilegeEscalation=false`,
 			expectErrList: field.ErrorList{
 				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.allowPrivilegeEscalation", BadValue: ""},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.allowPrivilegeEscalation", BadValue: []string{"nil"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.allowPrivilegeEscalation", BadValue: []string{"true"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].securityContext.allowPrivilegeEscalation", BadValue: "nil"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.allowPrivilegeEscalation", BadValue: true},
 			},
 		},
 	}

@@ -61,18 +61,16 @@ func CheckAllowPrivilegeEscalation() Check {
 }
 
 func allowPrivilegeEscalation_1_8(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	badContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badContainers := NewViolations[string](opts.withFieldErrors)
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		pathFn = pathFn.child("securityContext", "allowPrivilegeEscalation")
 		if container.SecurityContext == nil {
 			badContainers.Add(container.Name, required(pathFn))
 		} else if container.SecurityContext.AllowPrivilegeEscalation == nil {
-			badContainers.Add(container.Name, forbidden(pathFn).withBadValue([]string{"nil"}))
+			badContainers.Add(container.Name, forbidden(pathFn).withBadValue("nil"))
 		} else if *container.SecurityContext.AllowPrivilegeEscalation {
-			badContainers.Add(container.Name, forbidden(pathFn).withBadValue([]string{"true"}))
+			badContainers.Add(container.Name, forbidden(pathFn).withBadValue(true))
 		}
 	})
 

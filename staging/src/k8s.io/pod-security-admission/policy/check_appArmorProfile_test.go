@@ -143,9 +143,9 @@ func TestAppArmorProfile(t *testing.T) {
 				`container.apparmor.security.beta.kubernetes.io/f="unknown"`,
 			}, ", "),
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.apparmor.security.beta.kubernetes.io/]", BadValue: []string{"bogus"}},
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.apparmor.security.beta.kubernetes.io/e]", BadValue: []string{"unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.apparmor.security.beta.kubernetes.io/f]", BadValue: []string{"unknown"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.apparmor.security.beta.kubernetes.io/]", BadValue: "bogus"},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.apparmor.security.beta.kubernetes.io/e]", BadValue: "unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.apparmor.security.beta.kubernetes.io/f]", BadValue: "unknown"},
 			},
 		},
 	}

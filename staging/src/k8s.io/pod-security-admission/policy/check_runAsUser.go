@@ -61,28 +61,24 @@ func CheckRunAsUser() Check {
 
 func runAsUser_1_23(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set runAsUser=0
-	badSetters := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badSetters := NewViolations[string](opts.withFieldErrors)
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.RunAsUser != nil && *podSpec.SecurityContext.RunAsUser == 0 {
 		var errFn ErrFn
 		if opts.withFieldErrors {
-			errFn = forbidden(runAsUserPath).withBadValue([]string{"0"})
+			errFn = forbidden(runAsUserPath).withBadValue(0)
 		}
 		badSetters.Add("pod", errFn)
 	}
 
 	// containers that explicitly set runAsUser=0
-	var explicitlyBadContainers violations[string]
+	explicitlyBadContainers := NewViolations[string](opts.withFieldErrors)
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		if container.SecurityContext != nil && container.SecurityContext.RunAsUser != nil && *container.SecurityContext.RunAsUser == 0 {
 			explicitlyBadContainers.Add(container.Name)
-			explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsUser")).withBadValue([]string{
-				"0",
-			}))
+			explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "runAsUser")).withBadValue(0))
 		}
 	})
 

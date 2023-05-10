@@ -86,18 +86,13 @@ func validSeccompAnnotationValue(v string) bool {
 
 // seccompProfileBaseline_1_0 checks baseline policy on seccomp alpha annotation
 func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	var forbiddenValues []string
 	m := map[string][]ErrFn{}
-	badSetters := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badSetters := NewViolations[string](opts.withFieldErrors)
 
 	if val, ok := podMetadata.Annotations[annotationKeyPod]; ok {
 		if !validSeccompAnnotationValue(val) {
 			forbiddenValue := fmt.Sprintf("%s=%q", annotationKeyPod, val)
-			m[forbiddenValue] = append(m[forbiddenValue], forbidden(annotationsPath.key(annotationKeyPod)).withBadValue([]string{
-				val,
-			}))
+			m[forbiddenValue] = append(m[forbiddenValue], forbidden(annotationsPath.key(annotationKeyPod)).withBadValue(val))
 		}
 	}
 
@@ -106,19 +101,17 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 		if val, ok := podMetadata.Annotations[annotation]; ok {
 			if !validSeccompAnnotationValue(val) {
 				forbiddenValue := fmt.Sprintf("%s=%q", annotation, val)
-				m[forbiddenValue] = append(m[forbiddenValue], forbidden(annotationsPath.key(annotation)).withBadValue([]string{
-					val,
-				}))
+				m[forbiddenValue] = append(m[forbiddenValue], forbidden(annotationsPath.key(annotation)).withBadValue(val))
 			}
 		}
 	})
 
 	for forbiddenValue, errFns := range m {
-		forbiddenValues = append(forbiddenValues, forbiddenValue)
 		badSetters.Add(forbiddenValue, errFns...)
 	}
 
-	if len(forbiddenValues) > 0 {
+	if !badSetters.Empty() {
+		forbiddenValues := badSetters.Data()
 		sort.Strings(forbiddenValues)
 		return CheckResult{
 			Allowed:         false,
@@ -138,18 +131,14 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 // seccompProfileBaseline_1_19 checks baseline policy on securityContext.seccompProfile field
 func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
 	// things that explicitly set seccompProfile.type to a bad value
-	badSetters := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badSetters := NewViolations[string](opts.withFieldErrors)
 	badValues := sets.NewString()
 
 	if podSpec.SecurityContext != nil && podSpec.SecurityContext.SeccompProfile != nil {
 		if !validSeccomp(podSpec.SecurityContext.SeccompProfile.Type) {
 			var errFn ErrFn
 			if opts.withFieldErrors {
-				errFn = forbidden(seccompProfileTypePath).withBadValue([]string{
-					string(podSpec.SecurityContext.SeccompProfile.Type),
-				})
+				errFn = forbidden(seccompProfileTypePath).withBadValue(string(podSpec.SecurityContext.SeccompProfile.Type))
 			}
 			badSetters.Add("pod", errFn)
 			badValues.Insert(string(podSpec.SecurityContext.SeccompProfile.Type))
@@ -157,9 +146,7 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 	}
 
 	// containers that explicitly set seccompProfile.type to a bad value
-	explicitlyBadContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	explicitlyBadContainers := NewViolations[string](opts.withFieldErrors)
 	var explicitlyErrFns []ErrFn
 
 	visitContainers(podSpec, opts, func(c *corev1.Container, pathFn PathFn) {
@@ -168,9 +155,7 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			if !validSeccomp(c.SecurityContext.SeccompProfile.Type) {
 				// container explicitly set seccompProfile to a bad value
 				explicitlyBadContainers.Add(c.Name)
-				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type")).withBadValue([]string{
-					string(c.SecurityContext.SeccompProfile.Type),
-				}))
+				explicitlyErrFns = append(explicitlyErrFns, forbidden(pathFn.child("securityContext", "seccompProfile", "type")).withBadValue(string(c.SecurityContext.SeccompProfile.Type)))
 				badValues.Insert(string(c.SecurityContext.SeccompProfile.Type))
 			}
 		}

@@ -65,9 +65,7 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 			container.SecurityContext.WindowsOptions.HostProcess != nil &&
 			*container.SecurityContext.WindowsOptions.HostProcess {
 			badContainers = append(badContainers, container.Name)
-			errFns = append(errFns, forbidden(pathFn.child("securityContext", "windowsOptions", "hostProcess")).withBadValue([]string{
-				"true",
-			}))
+			errFns = append(errFns, forbidden(pathFn.child("securityContext", "windowsOptions", "hostProcess")).withBadValue(true))
 		}
 	})
 
@@ -80,13 +78,11 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 	}
 
 	// pod or containers explicitly set hostProcess=true
-	forbiddenSetters := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	forbiddenSetters := NewViolations[string](opts.withFieldErrors)
 	if podSpecForbidden {
 		var errFn ErrFn
 		if opts.withFieldErrors {
-			errFn = forbidden(hostProcessPath).withBadValue([]string{"true"})
+			errFn = forbidden(hostProcessPath).withBadValue(true)
 		}
 		forbiddenSetters.Add("pod", errFn)
 	}

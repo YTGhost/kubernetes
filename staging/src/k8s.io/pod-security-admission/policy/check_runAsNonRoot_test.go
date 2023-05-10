@@ -61,7 +61,7 @@ func TestRunAsNonRoot(t *testing.T) {
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or container "a" must set securityContext.runAsNonRoot=true`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.runAsNonRoot", BadValue: ""},
 			},
 		},
 		{
@@ -92,7 +92,7 @@ func TestRunAsNonRoot(t *testing.T) {
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod must not set securityContext.runAsNonRoot=false`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.runAsNonRoot", BadValue: []string{"false"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.runAsNonRoot", BadValue: false},
 			},
 		},
 		{
@@ -133,8 +133,8 @@ func TestRunAsNonRoot(t *testing.T) {
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `containers "c", "d" must not set securityContext.runAsNonRoot=false`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.runAsNonRoot", BadValue: []string{"false"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.runAsNonRoot", BadValue: []string{"false"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.runAsNonRoot", BadValue: false},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.runAsNonRoot", BadValue: false},
 			},
 		},
 		{
@@ -169,7 +169,8 @@ func TestRunAsNonRoot(t *testing.T) {
 			expectReason: `runAsNonRoot != true`,
 			expectDetail: `pod or containers "a", "b" must set securityContext.runAsNonRoot=true`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeRequired, Field: "spec.securityContext.runAsNonRoot", BadValue: ""},
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[0].securityContext.runAsNonRoot", BadValue: ""},
+				{Type: field.ErrorTypeRequired, Field: "spec.containers[1].securityContext.runAsNonRoot", BadValue: ""},
 			},
 		},
 	}

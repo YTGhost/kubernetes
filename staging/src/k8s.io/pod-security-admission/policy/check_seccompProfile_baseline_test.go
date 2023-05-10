@@ -65,7 +65,7 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotation seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[seccomp.security.alpha.kubernetes.io/pod]", BadValue: []string{"unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[seccomp.security.alpha.kubernetes.io/pod]", BadValue: "unconfined"},
 			},
 		},
 		{
@@ -106,8 +106,8 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/a]", BadValue: []string{"unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/b]", BadValue: []string{"unknown"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/a]", BadValue: "unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/b]", BadValue: "unknown"},
 			},
 		},
 		{
@@ -150,9 +150,9 @@ func TestSeccompProfileBaseline_1_0(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `forbidden annotations container.seccomp.security.alpha.kubernetes.io/a="unconfined", container.seccomp.security.alpha.kubernetes.io/b="unknown", seccomp.security.alpha.kubernetes.io/pod="unconfined"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[seccomp.security.alpha.kubernetes.io/pod]", BadValue: []string{"unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/a]", BadValue: []string{"unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/b]", BadValue: []string{"unknown"}},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[seccomp.security.alpha.kubernetes.io/pod]", BadValue: "unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/a]", BadValue: "unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "metadata.annotations[container.seccomp.security.alpha.kubernetes.io/b]", BadValue: "unknown"},
 			},
 		},
 	}
@@ -214,7 +214,7 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `pod must not set securityContext.seccompProfile.type to "Unconfined"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seccompProfile.type", BadValue: "Unconfined"},
 			},
 		},
 		{
@@ -255,8 +255,8 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.seccompProfile.type", BadValue: "Unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seccompProfile.type", BadValue: "Unconfined"},
 			},
 		},
 		{
@@ -297,9 +297,9 @@ func TestSeccompProfileBaseline_1_19(t *testing.T) {
 			expectReason: `seccompProfile`,
 			expectDetail: `pod and containers "c", "d" must not set securityContext.seccompProfile.type to "Unconfined"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seccompProfile.type", BadValue: []string{"Unconfined"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.seccompProfile.type", BadValue: "Unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.seccompProfile.type", BadValue: "Unconfined"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.seccompProfile.type", BadValue: "Unconfined"},
 			},
 		},
 	}

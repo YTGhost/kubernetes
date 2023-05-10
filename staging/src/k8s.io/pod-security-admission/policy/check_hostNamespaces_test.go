@@ -60,9 +60,9 @@ func TestHostNamespaces(t *testing.T) {
 			expectReason: `host namespaces`,
 			expectDetail: `hostNetwork=true, hostPID=true, hostIPC=true`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.hostNetwork", BadValue: []string{"true"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.hostPID", BadValue: []string{"true"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.hostIPC", BadValue: []string{"true"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.hostNetwork", BadValue: true},
+				{Type: field.ErrorTypeForbidden, Field: "spec.hostPID", BadValue: true},
+				{Type: field.ErrorTypeForbidden, Field: "spec.hostIPC", BadValue: true},
 			},
 		},
 	}

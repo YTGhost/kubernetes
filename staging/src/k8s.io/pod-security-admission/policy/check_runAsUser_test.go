@@ -64,7 +64,7 @@ func TestRunAsUser(t *testing.T) {
 			expectReason: `runAsUser=0`,
 			expectDetail: `pod must not set runAsUser=0`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.runAsUser", BadValue: []string{"0"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.runAsUser", BadValue: 0},
 			},
 		},
 		{
@@ -157,8 +157,8 @@ func TestRunAsUser(t *testing.T) {
 			expectReason: `runAsUser=0`,
 			expectDetail: `containers "c", "d" must not set runAsUser=0`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.runAsUser", BadValue: []string{"0"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.runAsUser", BadValue: []string{"0"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].securityContext.runAsUser", BadValue: 0},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.runAsUser", BadValue: 0},
 			},
 		},
 		{

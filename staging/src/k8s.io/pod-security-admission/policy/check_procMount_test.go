@@ -72,8 +72,8 @@ func TestProcMount(t *testing.T) {
 			expectReason: `procMount`,
 			expectDetail: `containers "d", "e" must not set securityContext.procMount to "Unmasked", "other"`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.procMount", BadValue: []string{"Unmasked"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.procMount", BadValue: []string{"other"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.procMount", BadValue: "Unmasked"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.procMount", BadValue: "other"},
 			},
 		},
 	}

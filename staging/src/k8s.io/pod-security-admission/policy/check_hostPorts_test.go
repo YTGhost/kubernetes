@@ -62,7 +62,7 @@ func TestHostPort(t *testing.T) {
 			expectReason: `hostPort`,
 			expectDetail: `container "b" uses hostPort 20`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].ports[1].hostPort", BadValue: []string{"20"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].ports[1].hostPort", BadValue: 20},
 			},
 		},
 		{
@@ -95,10 +95,10 @@ func TestHostPort(t *testing.T) {
 			expectReason: `hostPort`,
 			expectDetail: `containers "b", "c" use hostPorts 10, 20, 30`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].ports[1].hostPort", BadValue: []string{"10"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].ports[2].hostPort", BadValue: []string{"20"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].ports[1].hostPort", BadValue: []string{"10"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].ports[2].hostPort", BadValue: []string{"30"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].ports[1].hostPort", BadValue: 10},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[1].ports[2].hostPort", BadValue: 20},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].ports[1].hostPort", BadValue: 10},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[2].ports[2].hostPort", BadValue: 30},
 			},
 		},
 	}

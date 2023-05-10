@@ -58,9 +58,7 @@ func CheckHostPorts() Check {
 }
 
 func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	badContainers := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badContainers := NewViolations[string](opts.withFieldErrors)
 	forbiddenHostPorts := sets.NewString()
 	visitContainers(podSpec, opts, func(container *corev1.Container, pathFn PathFn) {
 		valid := true
@@ -69,9 +67,7 @@ func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 			if c.HostPort != 0 {
 				valid = false
 				forbiddenHostPorts.Insert(strconv.Itoa(int(c.HostPort)))
-				errFns = append(errFns, forbidden(pathFn.child("ports").index(i).child("hostPort")).withBadValue([]string{
-					strconv.Itoa(int(c.HostPort)),
-				}))
+				errFns = append(errFns, forbidden(pathFn.child("ports").index(i).child("hostPort")).withBadValue(int(c.HostPort)))
 			}
 		}
 		if !valid {

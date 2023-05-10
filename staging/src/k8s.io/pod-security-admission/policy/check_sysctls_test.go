@@ -63,8 +63,8 @@ func TestSysctls(t *testing.T) {
 			expectReason: `forbidden sysctls`,
 			expectDetail: `a, b`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[0].name", BadValue: []string{"a"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[1].name", BadValue: []string{"b"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[0].name", BadValue: "a"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[1].name", BadValue: "b"},
 			},
 		},
 		{
@@ -95,7 +95,7 @@ func TestSysctls(t *testing.T) {
 			expectReason: `forbidden sysctls`,
 			expectDetail: `net.ipv4.ip_local_reserved_ports`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[0].name", BadValue: []string{"net.ipv4.ip_local_reserved_ports"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[0].name", BadValue: "net.ipv4.ip_local_reserved_ports"},
 			},
 		},
 	}
@@ -164,8 +164,8 @@ func TestSysctls_1_27(t *testing.T) {
 			expectReason: `forbidden sysctls`,
 			expectDetail: `a, b`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[0].name", BadValue: []string{"a"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[1].name", BadValue: []string{"b"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[0].name", BadValue: "a"},
+				{Type: field.ErrorTypeForbidden, Field: "spec.securityContext.sysctls[1].name", BadValue: "b"},
 			},
 		},
 		{

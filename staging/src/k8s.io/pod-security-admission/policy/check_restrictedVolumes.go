@@ -84,9 +84,7 @@ func CheckRestrictedVolumes() Check {
 }
 
 func restrictedVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult {
-	badVolumes := violations[string]{
-		withFieldErrors: opts.withFieldErrors,
-	}
+	badVolumes := NewViolations[string](opts.withFieldErrors)
 	badVolumeTypes := sets.NewString()
 
 	for i, volume := range podSpec.Volumes {

@@ -69,8 +69,8 @@ func TestPrivileged(t *testing.T) {
 			expectReason: `privileged`,
 			expectDetail: `containers "d", "e" must not set securityContext.privileged=true`,
 			expectErrList: field.ErrorList{
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.privileged", BadValue: []string{"true"}},
-				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.privileged", BadValue: []string{"true"}},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[3].securityContext.privileged", BadValue: true},
+				{Type: field.ErrorTypeForbidden, Field: "spec.containers[4].securityContext.privileged", BadValue: true},
 			},
 		},
 	}
