@@ -130,7 +130,7 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 				strings.Join(badSetters.Data(), " and "),
 				joinQuote(badValues.List()),
 			),
-			ErrList: badSetters.Errs(),
+			//ErrList: badSetters.Errs(),
 		}
 	}
 
@@ -144,7 +144,7 @@ func seccompProfileRestricted_1_19(podMetadata *metav1.ObjectMeta, podSpec *core
 				pluralize("container", "containers", implicitlyBadContainers.Len()),
 				joinQuote(implicitlyBadContainers.Data()),
 			),
-			ErrList: implicitlyBadContainers.Errs(),
+			//ErrList: implicitlyBadContainers.Errs(),
 		}
 	}
 

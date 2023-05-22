@@ -77,7 +77,7 @@ func appArmorProfile_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec
 			Allowed:         false,
 			ForbiddenReason: pluralize("forbidden AppArmor profile", "forbidden AppArmor profiles", len(forbiddenValues)),
 			ForbiddenDetail: strings.Join(forbiddenValues, ", "),
-			ErrList:         forbiddenAppArmorProfile.Errs(),
+			//ErrList:         forbiddenAppArmorProfile.Errs(),
 		}
 	}
 

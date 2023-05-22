@@ -84,7 +84,7 @@ type CheckResult struct {
 	ForbiddenDetail string
 	// ErrList should only be set if Allowed is false, and is optional.
 	// ErrList is a detailed list of restricted field errors.
-	ErrList field.ErrorList
+	//ErrList field.ErrorList
 }
 
 // AggergateCheckResult holds the aggregate result of running CheckPod across multiple checks.
@@ -145,7 +145,7 @@ func AggregateCheckResults(results []CheckResult) AggregateCheckResult {
 				reasons = append(reasons, result.ForbiddenReason)
 			}
 			details = append(details, result.ForbiddenDetail)
-			errLists = append(errLists, result.ErrList)
+			//errLists = append(errLists, result.ErrList)
 		}
 	}
 	return AggregateCheckResult{

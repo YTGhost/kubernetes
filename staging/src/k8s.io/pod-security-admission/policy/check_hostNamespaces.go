@@ -75,7 +75,7 @@ func hostNamespaces_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 			Allowed:         false,
 			ForbiddenReason: "host namespaces",
 			ForbiddenDetail: strings.Join(hostNamespaces.Data(), ", "),
-			ErrList:         hostNamespaces.Errs(),
+			//ErrList:         hostNamespaces.Errs(),
 		}
 	}
 

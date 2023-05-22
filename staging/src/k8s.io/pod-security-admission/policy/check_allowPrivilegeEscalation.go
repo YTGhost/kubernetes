@@ -83,7 +83,7 @@ func allowPrivilegeEscalation_1_8(podMetadata *metav1.ObjectMeta, podSpec *corev
 				pluralize("container", "containers", badContainers.Len()),
 				joinQuote(badContainers.Data()),
 			),
-			ErrList: badContainers.Errs(),
+			//ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

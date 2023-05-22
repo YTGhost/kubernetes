@@ -115,7 +115,7 @@ func sysctls(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, sysctls_al
 			Allowed:         false,
 			ForbiddenReason: "forbidden sysctls",
 			ForbiddenDetail: strings.Join(forbiddenSysctls.Data(), ", "),
-			ErrList:         forbiddenSysctls.Errs(),
+			//ErrList:         forbiddenSysctls.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

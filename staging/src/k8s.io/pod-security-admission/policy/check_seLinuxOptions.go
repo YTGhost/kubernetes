@@ -170,7 +170,7 @@ func seLinuxOptions_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec,
 				strings.Join(badSetters.Data(), " and "),
 				strings.Join(badData, "; "),
 			),
-			ErrList: badSetters.Errs(),
+			//ErrList: badSetters.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

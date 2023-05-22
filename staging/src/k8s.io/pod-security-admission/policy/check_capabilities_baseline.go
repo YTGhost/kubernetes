@@ -105,7 +105,7 @@ func capabilitiesBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.Po
 				joinQuote(badContainers.Data()),
 				joinQuote(nonDefaultCapabilities.List()),
 			),
-			ErrList: badContainers.Errs(),
+			//ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

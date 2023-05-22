@@ -87,7 +87,7 @@ func hostPorts_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts
 				pluralize("hostPort", "hostPorts", len(forbiddenHostPorts)),
 				strings.Join(forbiddenHostPorts.List(), ", "),
 			),
-			ErrList: badContainers.Errs(),
+			//ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

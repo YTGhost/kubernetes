@@ -188,7 +188,7 @@ func restrictedVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSp
 				pluralize("restricted volume type", "restricted volume types", len(badVolumeTypes)),
 				joinQuote(badVolumeTypes.List()),
 			),
-			ErrList: badVolumes.Errs(),
+			//ErrList: badVolumes.Errs(),
 		}
 	}
 

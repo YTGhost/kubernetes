@@ -72,7 +72,7 @@ func hostPathVolumes_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec
 			Allowed:         false,
 			ForbiddenReason: "hostPath volumes",
 			ForbiddenDetail: fmt.Sprintf("%s %s", pluralize("volume", "volumes", hostVolumes.Len()), joinQuote(hostVolumes.Data())),
-			ErrList:         hostVolumes.Errs(),
+			//ErrList:         hostVolumes.Errs(),
 		}
 	}
 

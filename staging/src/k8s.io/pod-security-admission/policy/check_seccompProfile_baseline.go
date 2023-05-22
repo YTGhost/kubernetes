@@ -121,7 +121,7 @@ func seccompProfileBaseline_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.
 				pluralize("annotation", "annotations", len(forbiddenValues)),
 				strings.Join(forbiddenValues, ", "),
 			),
-			ErrList: badSetters.Errs(),
+			//ErrList: badSetters.Errs(),
 		}
 	}
 
@@ -181,7 +181,7 @@ func seccompProfileBaseline_1_19(podMetadata *metav1.ObjectMeta, podSpec *corev1
 				strings.Join(badSetters.Data(), " and "),
 				joinQuote(badValues.List()),
 			),
-			ErrList: badSetters.Errs(),
+			//ErrList: badSetters.Errs(),
 		}
 	}
 

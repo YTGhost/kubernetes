@@ -98,7 +98,7 @@ func runAsUser_1_23(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opt
 			Allowed:         false,
 			ForbiddenReason: "runAsUser=0",
 			ForbiddenDetail: fmt.Sprintf("%s must not set runAsUser=0", strings.Join(badSetters.Data(), " and ")),
-			ErrList:         badSetters.Errs(),
+			//ErrList:         badSetters.Errs(),
 		}
 	}
 

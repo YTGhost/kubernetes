@@ -101,7 +101,7 @@ func windowsHostProcess_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodS
 			Allowed:         false,
 			ForbiddenReason: "hostProcess",
 			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.windowsOptions.hostProcess=true", strings.Join(forbiddenSetters.Data(), " and ")),
-			ErrList:         forbiddenSetters.Errs(),
+			//ErrList:         forbiddenSetters.Errs(),
 		}
 	}
 

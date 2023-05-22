@@ -70,7 +70,7 @@ func privileged_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opt
 				pluralize("container", "containers", badContainers.Len()),
 				joinQuote(badContainers.Data()),
 			),
-			ErrList: badContainers.Errs(),
+			//ErrList: badContainers.Errs(),
 		}
 	}
 	return CheckResult{Allowed: true}

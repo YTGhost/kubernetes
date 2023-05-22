@@ -113,7 +113,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 			Allowed:         false,
 			ForbiddenReason: "runAsNonRoot != true",
 			ForbiddenDetail: fmt.Sprintf("%s must not set securityContext.runAsNonRoot=false", strings.Join(badSetters.Data(), " and ")),
-			ErrList:         badSetters.Errs(),
+			//ErrList:         badSetters.Errs(),
 		}
 	}
 
@@ -127,7 +127,7 @@ func runAsNonRoot_1_0(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, o
 				pluralize("container", "containers", implicitlyBadContainers.Len()),
 				joinQuote(implicitlyBadContainers.Data()),
 			),
-			ErrList: implicitlyBadContainers.Errs(),
+			//ErrList: implicitlyBadContainers.Errs(),
 		}
 	}
 

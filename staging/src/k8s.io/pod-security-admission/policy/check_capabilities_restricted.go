@@ -123,7 +123,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 	})
 
 	var forbiddenDetails []string
-	errList := append(containersMissingDropAll.Errs(), containersAddingForbidden.Errs()...)
+	//errList := append(containersMissingDropAll.Errs(), containersAddingForbidden.Errs()...)
 	if !containersMissingDropAll.Empty() {
 		forbiddenDetails = append(forbiddenDetails, fmt.Sprintf(
 			`%s %s must set securityContext.capabilities.drop=["ALL"]`,
@@ -142,7 +142,7 @@ func capabilitiesRestricted_1_22(podMetadata *metav1.ObjectMeta, podSpec *corev1
 			Allowed:         false,
 			ForbiddenReason: "unrestricted capabilities",
 			ForbiddenDetail: strings.Join(forbiddenDetails, "; "),
-			ErrList:         errList,
+			//ErrList:         errList,
 		}
 	}
 	return CheckResult{Allowed: true}
