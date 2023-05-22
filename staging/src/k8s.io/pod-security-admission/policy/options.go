@@ -27,13 +27,21 @@ type options struct {
 
 type Option func(*options)
 
+func newOptions(opts ...Option) options {
+	var opt options
+	for _, o := range opts {
+		if o != nil {
+			o(&opt)
+		}
+	}
+	return opt
+}
+
 func withOptions(f func(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts options) CheckResult) CheckPodFn {
 	return func(podMetadata *metav1.ObjectMeta, podSpec *corev1.PodSpec, opts ...Option) CheckResult {
 		var opt options
-		for _, o := range opts {
-			if o != nil {
-				o(&opt)
-			}
+		if len(opts) > 0 {
+			opt = newOptions(opts...)
 		}
 		return f(podMetadata, podSpec, opt)
 	}
